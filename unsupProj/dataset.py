@@ -29,7 +29,7 @@ class CTDataset(Dataset):
 		Returns a single data point at given idx.
 		Here's where we actually load the image.
 		'''
-		filepath = img_list[idx].rstrip('\n') # remove \n from filepath
+		filepath = self.img_list[idx].rstrip('\n') # remove \n from filepath
 		image_path = os.path.join(self.base, filepath)
 		# load image
 		img = Image.open(image_path).convert('RGB')     # the ".convert" makes sure we always get three bands in Red, Green, Blue order
