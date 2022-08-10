@@ -40,7 +40,6 @@ class CTDataset(Dataset):
 		return img_tensor, filepath
 
 '''
-
 if __name__ = '__main__':
 
 	import yaml

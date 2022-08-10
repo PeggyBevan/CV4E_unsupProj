@@ -5,10 +5,10 @@
 '''
 
 import os
-import argparse
+#import argparse
 import yaml
 import glob
-from tqdm import trange
+#from tqdm import trange
 
 import torch
 import torch.nn as nn
@@ -16,7 +16,6 @@ from torch.utils.data import DataLoader
 from torch.optim import SGD
 
 # let's import our own classes and functions!
-from util import init_seed
 from dataset import CTDataset
 from model import CustomPegNet50
 
@@ -36,15 +35,15 @@ def create_dataloader(cfg, img_list_path):
             num_workers=cfg['num_workers']
         )
     return dataLoader
-
- def load_model(cfg):
-    '''
-        Creates a model instance and loads the latest model state weights.
-    '''
+'''
+I don't think this is needed for now.
+def load_model(cfg):
+'''
+        #Creates a model instance and loads the latest model state weights.
+'''
     model_instance = CustomPegNet50()  # create an object instance of our CustomResNet18 class
-
     return model_instance
-
+'''
 def predict(self, cfg, dataLoader, model):
     '''
         loads in data and model together, and extracts features for each row
@@ -56,7 +55,7 @@ def predict(self, cfg, dataLoader, model):
             data = data.to(device)
             features = model(data[idx][0]) #adapt model fn to return what you want
             filepath = data[idx][0]
-            output[idx] = {‘features’: features, 'img_path': filepath}
+            output[idx] = {'features': features, 'img_path': filepath}
     return output
 	
 
