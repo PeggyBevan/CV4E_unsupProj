@@ -53,9 +53,10 @@ def predict(self, cfg, dataLoader, model):
         output = {}
         for idx, data in enumerate(dataLoader): #if needed, adapt dataloader for prediction (no labels) 
             data = data.to(device)
-            features = model(data[0][idx]) #adapt model fn to return what you want
-            filepath = data[1][idx]
+            features = model(data[0]) #adapt model fn to return what you want
+            filepath = data[1]
             output[idx] = {'features': features, 'img_path': filepath}
+            break
     return output
 	
 

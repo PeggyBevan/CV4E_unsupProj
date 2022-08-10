@@ -18,8 +18,9 @@ class CustomPegNet50(nn.Module):
         '''
         super(CustomPegNet50, self).__init__()
 
-        self.feature_extractor = resnet.resnet50(pretrained=True)       # "pretrained": use weights pre-trained on ImageNet
-
+        self.feature_extractor = resnet.resnet50(weights=ResNet50_Weights.DEFAULT) 
+        #use weights pre-trained on ImageNet - default = most up to date
+        
         # remove the very last layer from the original, 1000-class output
         # and replace with an identity block 
         # removing softmax and linear model
