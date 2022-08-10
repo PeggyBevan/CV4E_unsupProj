@@ -11,7 +11,7 @@ from torchvision.models import resnet
 #properties from pre-made module
 class CustomPegNet50(nn.Module):
 
-    def __init__(self, num_classes):
+    def __init__(self):
         '''
             Constructor of the model. Here, we initialize the model's
             architecture (layers).
@@ -32,12 +32,13 @@ class CustomPegNet50(nn.Module):
     def forward(self, x):
         '''
             Forward pass. Here, we define how to apply our model. It's basically
-            applying our modified ResNet-18 on the input tensor ("x") and then
+            applying our modified ResNet-50 on the input tensor ("x") and then
             apply the final classifier layer on the ResNet-18 output to get our
             num_classes prediction.
         '''
         # x.size(): [B x 3 x W x H]
         features = self.feature_extractor(x)    # features.size(): [B x 512 x W x H]
-        prediction = self.classifier(features)  # prediction.size(): [B x num_classes]
+        #I don't care about prediction - just want to ouput features
+        #prediction = self.classifier(features)  # prediction.size(): [B x num_classes]
 
         return features

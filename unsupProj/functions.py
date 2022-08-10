@@ -1,6 +1,6 @@
 '''
     Functions used for loading data, model and extracting features
-    Here, model and datset at loaded and run across images 
+    
     2022 Peggy Bevan
 '''
 
@@ -46,12 +46,17 @@ def create_dataloader(cfg, img_list_path):
     return model_instance
 
 def predict(self, cfg, dataLoader, model):
+    '''
+        loads in data and model together, and extracts features for each row
+        Output is a dictionary with feacture vector and img_path for each item
+    '''
     with torch.no_grad():   # no gradients needed for prediction
         output = {}
         for idx, data in enumerate(dataLoader): #if needed, adapt dataloader for prediction (no labels) 
             data = data.to(device)
-            features = model(data) #adapt model fn to return what you want
-            output[idx] = {‘features’: features, 'img_path': data.filepath}
+            features = model(data[idx][0]) #adapt model fn to return what you want
+            filepath = data[idx][0]
+            output[idx] = {‘features’: features, 'img_path': filepath}
     return output
 	
 
