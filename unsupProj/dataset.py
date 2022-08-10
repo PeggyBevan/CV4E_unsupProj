@@ -37,7 +37,7 @@ class CTDataset(Dataset):
 		# transform: see lines above where we define our transformations
 		img_tensor = self.transform(img)
 
-		return img_tensor
+		return img_tensor, filepath
 
 '''
 
