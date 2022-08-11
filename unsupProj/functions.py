@@ -44,7 +44,7 @@ def load_model(cfg):
     model_instance = CustomPegNet50()  # create an object instance of our CustomResNet18 class
     return model_instance
 '''
-def predict(self, cfg, dataLoader, model):
+def predict(cfg, dataLoader, model):
     '''
         loads in data and model together, and extracts features for each row
         Output is a dictionary with feacture vector and img_path for each item
