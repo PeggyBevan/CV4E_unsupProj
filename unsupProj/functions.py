@@ -53,7 +53,7 @@ def predict(cfg, dataLoader, model):
         output = {}
         for idx, data in enumerate(dataLoader): #if needed, adapt dataloader for prediction (no labels) 
             array = data[0]
-            array = array.to(device)
+            array = array.to(cfg['device'])
             features = model(array) #adapt model fn to return what you want
             filepath = data[1]
             output[idx] = {'features': features, 'img_path': filepath}
