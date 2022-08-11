@@ -57,7 +57,6 @@ def predict(cfg, dataLoader, model):
             features = model(array) #adapt model fn to return what you want
             filepath = data[1]
             output[idx] = {'features': features, 'img_path': filepath}
-            break
     return output
 	
 
