@@ -19,6 +19,7 @@ model = CustomPegNet50()
 #this might cause an error if no GPU
 model.cuda
 
+
 # to call the fn
 img_list_path = '/home/pegbev/data/train.txt'
 cfg = yaml.safe_load(open('/home/pegbev/CV4E_unsupProj/configs/cfg_resnet50.yaml'))
@@ -32,5 +33,5 @@ prediction_dict = predict(cfg, dl, model)
 
 #write as json into filepath 
 print('Saving dictionary to json')
-with open("main_output.json", "w") as outfile:
-    json.dump(precition_dict, outfile)
+with open("../main_output.json", "w") as outfile:
+    json.dump(prediction_dict, outfile)

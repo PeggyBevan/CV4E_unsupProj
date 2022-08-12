@@ -53,9 +53,9 @@ def predict(cfg, dataLoader, model):
         output = {}
         for idx, data in tqdm.tqdm(enumerate(dataLoader)): #if needed, adapt dataloader for prediction (no labels) 
             array = data[0]
-            #array = array.to(cfg['device'])
+            array = array.to(cfg['device'])
             features = model(array)
-            features.cpu().detach().numpy() #bring back to cpu and convert to numpy
+            features = features.cpu().detach().numpy() #bring back to cpu and convert to numpy
             filepath = data[1]
             output[idx] = {'features': features, 'img_path': filepath}
     return output

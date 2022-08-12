@@ -8,7 +8,7 @@
 
 # environment/computational parameters
 seed: 32678456782       # random number generator seed (long integer value)
-device: cuda
+device: 'cuda'
 num_workers: 4 #number of parallel operations
 
 # dataset parameters
