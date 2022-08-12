@@ -17,7 +17,7 @@ from functions import create_dataloader, predict
 #create model and apply parameters
 model = CustomPegNet50()
 #this might cause an error if no GPU
-model.cuda
+model = model.cuda
 
 
 # to call the fn

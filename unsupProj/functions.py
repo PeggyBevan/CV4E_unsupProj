@@ -61,8 +61,6 @@ def predict(cfg, dataLoader, model):
     return output
 	
 
-
-
 ''' 
     if __name__ == '__main__':
     # This block only gets executed if you call the "train.py" script directly
