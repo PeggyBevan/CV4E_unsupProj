@@ -12,6 +12,8 @@ import yaml, json
 from model import CustomPegNet50
 from dataset import CTDataset
 from functions import create_dataloader, predict
+import torch
+import numpy as np
 
 
 #create model and apply parameters
@@ -31,7 +33,17 @@ dl = create_dataloader(cfg, img_list_path)
 print('Creating feature vectors...')
 prediction_dict = predict(cfg, dl, model)
 
-torch.save(prediction_dict, '../output/main_output_dict.pt')
+vectors = prediction_dict['features']
+vecs = np.concatenate((vectors), axis = 0)
+np.save("../../output/featurevector.npy")
+
+img_path = prediction_dict['img_path']
+#convert to numpy array by concatenating
+imgs = imgs = np.concatenate(imgs)
+np.save("../../output/imgpathvector.npy", imgs)
+
+
+#pickle.dump(prediction_dict, '../output/main_output_dict.pt')
 
 
 #write as json into filepath 
