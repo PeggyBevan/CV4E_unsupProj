@@ -31,7 +31,10 @@ dl = create_dataloader(cfg, img_list_path)
 print('Creating feature vectors...')
 prediction_dict = predict(cfg, dl, model)
 
+torch.save(prediction_dict, '../output/main_output_dict.pt')
+
+
 #write as json into filepath 
-print('Saving dictionary to json')
-with open("../main_output.json", "w") as outfile:
-    json.dump(prediction_dict, outfile)
+#print('Saving dictionary to json')
+#with open("../main_output.json", "w") as outfile:
+#    json.dump(prediction_dict, outfile)

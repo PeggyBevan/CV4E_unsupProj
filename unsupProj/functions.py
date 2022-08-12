@@ -50,14 +50,15 @@ def predict(cfg, dataLoader, model):
         Output is a dictionary with feacture vector and img_path for each item
     '''
     with torch.no_grad():   # no gradients needed for prediction
-        output = {}
+        output = {'features': [], 'img_path': []}
         for idx, data in tqdm.tqdm(enumerate(dataLoader)): #if needed, adapt dataloader for prediction (no labels) 
             array = data[0]
             array = array.to(cfg['device'])
             features = model(array)
             features = features.cpu().detach().numpy() #bring back to cpu and convert to numpy
             filepath = data[1]
-            output[idx] = {'features': features, 'img_path': filepath}
+            output['features'].append(features)
+            output['img_path'].append(filepath)
     return output
 	
 
