@@ -17,7 +17,7 @@ from functions import create_dataloader, predict
 #create model and apply parameters
 model = CustomPegNet50()
 #this might cause an error if no GPU
-#model.cuda
+model.cuda
 
 # to call the fn
 img_list_path = '/home/pegbev/data/train.txt'
