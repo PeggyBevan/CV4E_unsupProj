@@ -8,7 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import seaborn as sns
-!pip install umap-learn
+#!pip install umap-learn
 import umap
 import json
 from collections import defaultdict
@@ -69,8 +69,10 @@ json.dumps(specsbymgmt)
 
 #Visualising entire dataset
 #create umap object
+print('Plotting UMAP embeddings for entire dataset')
 fit = umap.UMAP()
 %time u = fit.fit_transform(features)
+
 
 #initial plot, no colours
 plot = plt.scatter(u[:,0], u[:,1])

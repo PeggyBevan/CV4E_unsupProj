@@ -59,6 +59,7 @@ def predict(cfg, dataLoader, model):
             filepath = data[1]
             output['features'].append(features)
             output['img_path'].append(filepath)
+    output = np.concatenate((output), axis = 0) #group batches into one large array
     return output
 	
 
