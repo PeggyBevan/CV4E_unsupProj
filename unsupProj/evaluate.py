@@ -15,7 +15,7 @@ from collections import defaultdict
 from sklearn import metrics
 from sklearn.metrics import pairwise_distances
 from sklearn import datasets
-%matplotlib inline
+#%matplotlib inline
 
 
 #read in numpy arrays - output from predict.py
@@ -71,7 +71,7 @@ json.dumps(specsbymgmt)
 #create umap object
 print('Plotting UMAP embeddings for entire dataset')
 fit = umap.UMAP()
-%time u = fit.fit_transform(features)
+u = fit.fit_transform(features)
 
 
 #initial plot, no colours
