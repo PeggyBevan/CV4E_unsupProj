@@ -5,6 +5,7 @@ print('loading packages')
 import numpy as np
 import pickle
 import pandas as pd
+pd.options.mode.chained_assignment = None  # default='warn' #stop pd warning about chain indexing
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import seaborn as sns
@@ -17,6 +18,7 @@ from sklearn import metrics
 from sklearn.metrics import pairwise_distances
 from sklearn import datasets
 from sklearn.metrics import adjusted_rand_score, adjusted_mutual_info_score
+
 #%matplotlib inline
 
 
@@ -182,6 +184,7 @@ for index,row in kcomp.iterrows():
   		optimk = sil.index(max(sil))+2
   		kcomp['optimK'][index] = optimk
 
-
+#save
+kcomp.to_csv('output/kmeans_nspecies_comp.csv', index=False)
 
 
