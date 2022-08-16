@@ -11,10 +11,12 @@ import seaborn as sns
 #!pip install umap-learn
 import umap
 import json
+import sklearn.cluster as cluster
 from collections import defaultdict
 from sklearn import metrics
 from sklearn.metrics import pairwise_distances
 from sklearn import datasets
+from sklearn.metrics import adjusted_rand_score, adjusted_mutual_info_score
 #%matplotlib inline
 
 
@@ -102,6 +104,7 @@ sns.relplot(x=u[:,0], y= u[:,1], hue=time_hour, alpha=.2, palette="muted",
             height=10).set(title = 'UMAP embedding coloured by time of day')
 plt.savefig('output/figs/allimgs/umap_hour.png', dpi='figure')
 
+print('Plots saved!')
 '''
 #plotting for one ct site
 fit = umap.UMAP()
