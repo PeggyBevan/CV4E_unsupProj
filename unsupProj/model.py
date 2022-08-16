@@ -5,6 +5,7 @@
 '''
 
 import torch.nn as nn
+import torch
 from torchvision.models import resnet
 
 #Class name is whatever you want it to be. nn.Module inherits 
