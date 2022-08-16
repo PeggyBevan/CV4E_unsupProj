@@ -10,16 +10,18 @@ import model, dataset, functions
 import yaml, json
 #import pickle
 from model import CustomPegNet50
+from model import SwavNet
 from dataset import CTDataset
 from functions import create_dataloader, predict
 import torch
 import numpy as np
 
 
+print('Running PegNet50')
 #create model and apply parameters
-model = CustomPegNet50()
+PegNet = CustomPegNet50()
 #this might cause an error if no GPU
-model = model.cuda()
+PegNet = PegNet.cuda()
 
 
 # to call the fn
@@ -31,22 +33,32 @@ cfg = yaml.safe_load(open('/home/pegbev/CV4E_unsupProj/configs/cfg_resnet50.yaml
 dl = create_dataloader(cfg, img_list_path)
 
 print('Creating feature vectors...')
-prediction_dict = predict(cfg, dl, model)
+prediction_dict = predict(cfg, dl, PegNet)
 
 vectors = prediction_dict['features']
 vecs = np.concatenate((vectors), axis = 0)
-np.save("../../output/featurevector.npy")
+np.save("../../output/PegNet_fvect_norm.npy", vecs) #norm = with normalize transform
 
 img_path = prediction_dict['img_path']
 #convert to numpy array by concatenating
-imgs = imgs = np.concatenate(imgs)
-np.save("../../output/imgpathvector.npy", imgs)
+imgs = np.concatenate((imgs), axis = 0)
+np.save("../../output/PegNet_imgvect_norm.npy", imgs) #norm = with normalize transform
 
+#remove model from GPU
+PegNet.cpu()
 
-#pickle.dump(prediction_dict, '../output/main_output_dict.pt')
+#Run SwavNet
+SwavNet = SwavNet()
+SwavNet = SwavNet.cuda()
 
+print('Creating feature vectors...')
+prediction_dict = predict(cfg, dl, SwavNet)
 
-#write as json into filepath 
-#print('Saving dictionary to json')
-#with open("../main_output.json", "w") as outfile:
-#    json.dump(prediction_dict, outfile)
+vectors = prediction_dict['features']
+vecs = np.concatenate((vectors), axis = 0)
+np.save("../../output/featurevector_Swav.npy", vecs)
+
+img_path = prediction_dict['img_path']
+#convert to numpy array by concatenating
+imgs = np.concatenate((imgs), axis = 0)
+np.save("../../output/imgpathvector_norm.npy", imgs)
