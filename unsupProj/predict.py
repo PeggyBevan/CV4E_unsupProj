@@ -56,9 +56,9 @@ prediction_dict = predict(cfg, dl, SwavNet)
 
 vectors = prediction_dict['features']
 vecs = np.concatenate((vectors), axis = 0)
-np.save("../../output/featurevector_Swav.npy", vecs)
+np.save("../../output/Swav_fvect.npy", vecs)
 
 img_path = prediction_dict['img_path']
 #convert to numpy array by concatenating
 imgs = np.concatenate((imgs), axis = 0)
-np.save("../../output/imgpathvector_norm.npy", imgs)
+np.save("../../output/Swav_imgvect.npy", imgs)
