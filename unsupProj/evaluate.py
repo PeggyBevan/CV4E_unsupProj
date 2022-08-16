@@ -20,8 +20,8 @@ from sklearn import datasets
 
 #read in numpy arrays - output from predict.py
 print('reading in feature vectors')
-features = np.load('output/featurevectors.npy')
-imgs = np.load('output/imgpathvectors.npy')
+features = np.load('output/featurevector.npy')
+imgs = np.load('output/imgpathvector.npy')
 
 #add information about camera trap location and species
 excel = 'data/nepal_cropsmeta_PB.csv'
