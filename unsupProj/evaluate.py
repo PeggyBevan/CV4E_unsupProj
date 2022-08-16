@@ -176,13 +176,16 @@ for index,row in kcomp.iterrows():
 	kcomp['nspecies'][index] = len(set(y))
 	print(f'Finding optimal k for site {site}')
 	#finding optimal value of k using the silhouette coefficient
-	for k in range(2, kmax+1):
-  		kmeans = cluster.KMeans(n_clusters = k).fit(x)
-  		labels = kmeans.labels_ #underscore is needed
-  		sil.append(metrics.silhouette_score(x, labels, metric = 'euclidean'))
-  		#find index of max silhouette and add 2 (0 = 2)
-  		optimk = sil.index(max(sil))+2
-  		kcomp['optimK'][index] = optimk
+	if len(x) < 50:
+		kcomp['optimK'][index] = 'NA'
+	else:
+		for k in range(2, kmax+1):
+  			kmeans = cluster.KMeans(n_clusters = k).fit(x)
+  			labels = kmeans.labels_ #underscore is needed
+  			sil.append(metrics.silhouette_score(x, labels, metric = 'euclidean'))
+  			#find index of max silhouette and add 2 (0 = 2)
+  			optimk = sil.index(max(sil))+2
+  			kcomp['optimK'][index] = optimk
 
 #save
 kcomp.to_csv('output/kmeans_nspecies_comp.csv', index=False)
