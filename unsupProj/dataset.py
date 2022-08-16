@@ -5,7 +5,7 @@
 import os
 import json
 from torch.utils.data import Dataset
-from torchvision.transforms import Compose, Resize, ToTensor
+from torchvision.transforms import Compose, Resize, ToTensor, Normalize
 from PIL import Image
 
 
@@ -21,7 +21,7 @@ class CTDataset(Dataset):
 		#normalise images on the imageNet mean and std. this matches
 		#pre-processing protocol in the model training.
 		#taken from https://github.com/pytorch/examples/blob/97304e232807082c2e7b54c597615dc0ad8f6173/imagenet/main.py#L197-L198
-		normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+		normalize = Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
 
 		self.transform = Compose([Resize((cfg['image_size'])),ToTensor(), normalize])
 		 # Transforms. For now, resizes image to dims needed for Res50 and converts to tensor
