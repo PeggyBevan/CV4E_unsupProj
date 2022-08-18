@@ -40,7 +40,7 @@ time_hour = np.array(meta.time_hour)
 #create umap object
 print('Plotting UMAP embeddings for entire dataset')
 fit = umap.UMAP()
-u = fit.fit_transform(features) #this line can take a while
+u = fit.fit_transform(features_EB) #this line can take a while
 
 ##split data by camera trap site
 print('Organising data by site')
