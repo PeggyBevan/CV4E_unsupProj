@@ -34,6 +34,14 @@ print('reading in feature vectors')
 features_PN = np.load('output/Swav_fvect.npy')
 imgs_PN = np.load('output/Swav_imgvect.npy')
 
+features_Sw = np.load('output/Swav_fvect.npy')
+imgs_Sw = np.load('output/Swav_imgvect.npy')
+
+features_EB = np.load('output/Emb_fvect.npy')
+imgs_EB = np.load('output/Emb_imgvect.npy')
+
+
+
 #add information about camera trap location and species
 meta = pd.read_csv('data/nepal_cropsmeta_PB.csv')
 
@@ -56,7 +64,7 @@ time_hour = np.array(meta.time_hour)
 print('Organising data by site')
 vecsbysite = {}
 for site in sorted(set(ct_site)):
-	vecsbysite[site] = features[ct_site==site]
+	vecsbysite[site] = features_EB[ct_site==site]
 
 specsbysite = {}
 for site in sorted(set(ct_site)):
@@ -237,29 +245,46 @@ for index,row in kcomp.iterrows():
 				kmax = len(x)-1
 				for k in range(2, kmax+1):
 					print(f'k = {k}')
-  					kmeans = cluster.KMeans(n_clusters = k).fit(embedding)
-  					labels = kmeans.labels_ #underscore is needed
-  					sil.append(metrics.silhouette_score(embedding, labels, metric = 'euclidean'))
-  				#find index of max silhouette and add 2 (0 = 2)	
-  				optimk = sil.index(max(sil))+2
+					kmeans = cluster.KMeans(n_clusters = k).fit(embedding)
+					labels = kmeans.labels_ #underscore is needed
+					sil.append(metrics.silhouette_score(embedding, labels, metric = 'euclidean'))
+				#find index of max silhouette and add 2 (0 = 2)	
+				optimk = sil.index(max(sil))+2
 			else:
 				for k in range(2, kmax+1):
 					print(f'k = {k}')
-  					kmeans = cluster.KMeans(n_clusters = k).fit(embedding)
-  					labels = kmeans.labels_ #underscore is needed
-  					sil.append(metrics.silhouette_score(embedding, labels, metric = 'euclidean'))
-  					#find index of max silhouette and add 2 (0 = 2)
-  				optimk = sil.index(max(sil))+2
-  		else:
+					kmeans = cluster.KMeans(n_clusters = k).fit(embedding)
+					labels = kmeans.labels_ #underscore is needed
+					sil.append(metrics.silhouette_score(embedding, labels, metric = 'euclidean'))
+					#find index of max silhouette and add 2 (0 = 2)
+				optimk = sil.index(max(sil))+2
+		else:
 			optimk = 'NA'
-  		column = ('OK_' + str(dim))
-  		kcomp[column][index] = optimk
-  		print(f'Optimal cluster number = {optimk}')
-
+		column = ('OK_' + str(dim))
+		kcomp[column][index] = optimk
+		print(f'Optimal cluster number = {optimk}')
+k_EB = kcomp
 k_PN = kcomp
 
 #save
 k_PN.to_csv('output/kmeans_PN_dims.csv', index=False)
+
+#Omi model
+
+#finding optimal K for each site, testing dimensionality
+k_EB = pd.DataFrame(sorted(set(ct_site)), columns = ['site'])
+k_EB['numimgs'] = pd.NaT
+k_EB['nspecies'] = pd.NaT
+k_EB['OK_2048'] = pd.NaT
+k_EB['OK_512'] = pd.NaT
+k_EB['OK_128'] = pd.NaT
+k_EB['OK_32'] = pd.NaT
+k_EB['OK_8'] = pd.NaT
+k_EB['OK_2'] = pd.NaT
+dimensions = [2048,512,128,32,8,2]
+kcomp = k_EB #just for the testing part
+kcomp = kcomp.reset_index()  # make sure indexes pair with number of row
+
 
 #HBDSCAN clustering
 
