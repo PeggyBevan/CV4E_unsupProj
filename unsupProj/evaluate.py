@@ -1,6 +1,14 @@
 '''
-	Taking in feature vectors from model and visualising using UMAP
+	Taking in feature vectors from model and visualising using UMAP - SWAV
+	Peggy Bevan Aug 2022
 '''
+#if numpy files need importing, in cmd line:
+#scp -i ~/Downloads/PegNetVM_key.pem "pegbev@20.228.65.187:/home/pegbev/output/PegNet_fvect_norm.npy" "/Users/peggybevan/OneDrive/My Documents/PhD/CameraTraps/CV4E/output/"
+#scp -i ~/Downloads/PegNetVM_key.pem "pegbev@20.228.65.187:/home/pegbev/output/PegNet_imgvect_norm.npy" "/Users/peggybevan/OneDrive/My Documents/PhD/CameraTraps/CV4E/output/"
+#scp -i ~/Downloads/PegNetVM_key.pem "pegbev@20.228.65.187:/home/pegbev/output/Swav_fvect.npy" "/Users/peggybevan/OneDrive/My Documents/PhD/CameraTraps/CV4E/output/"
+#scp -i ~/Downloads/PegNetVM_key.pem "pegbev@20.228.65.187:/home/pegbev/output/Swav_imgvect.npy" "/Users/peggybevan/OneDrive/My Documents/PhD/CameraTraps/CV4E/output/"
+
+
 print('loading packages')
 import numpy as np
 import pickle
@@ -12,24 +20,22 @@ import seaborn as sns
 #!pip install umap-learn
 import umap
 import json
+import hdbscan
 import sklearn.cluster as cluster
 from collections import defaultdict
-from sklearn import metrics
-from sklearn.metrics import pairwise_distances
-from sklearn import datasets
-from sklearn.metrics import adjusted_rand_score, adjusted_mutual_info_score
+from sklearn import metrics, datasets
+from sklearn.metrics import pairwise_distances, adjusted_rand_score, adjusted_mutual_info_score
 
-#%matplotlib inline
+%matplotlib auto #display plots
 
 
 #read in numpy arrays - output from predict.py
 print('reading in feature vectors')
-features = np.load('output/featurevector.npy')
-imgs = np.load('output/imgpathvector.npy')
+features_PN = np.load('output/Swav_fvect.npy')
+imgs_PN = np.load('output/Swav_imgvect.npy')
 
 #add information about camera trap location and species
-excel = 'data/nepal_cropsmeta_PB.csv'
-meta = pd.read_csv(excel)
+meta = pd.read_csv('data/nepal_cropsmeta_PB.csv')
 
 #meta has humans and vehicles in - remove
 anthro = ['human', 'vehicle']
@@ -49,19 +55,19 @@ time_hour = np.array(meta.time_hour)
 ##split data by camera trap site
 print('Organising data by site')
 vecsbysite = {}
-for site in set(ct_site):
+for site in sorted(set(ct_site)):
 	vecsbysite[site] = features[ct_site==site]
 
 specsbysite = {}
-for site in set(ct_site):
+for site in sorted(set(ct_site)):
 	specsbysite[site] = species[ct_site==site]
 
 vecsbymgmt = {}
-for site in set(mgmt):
+for site in sorted(set(mgmt)):
 	vecsbymgmt[site] = features[mgmt==site]
 
 specsbymgmt = {}
-for site in set(mgmt):
+for site in sorted(set(mgmt)):
 	specsbymgmt[site] = species[mgmt==site]
 
 '''#save these
@@ -75,7 +81,7 @@ json.dumps(specsbymgmt)
 #create umap object
 print('Plotting UMAP embeddings for entire dataset')
 fit = umap.UMAP()
-u = fit.fit_transform(features)
+u = fit.fit_transform(features) #this line can take a while
 
 
 #initial plot, no colours
@@ -86,23 +92,23 @@ plt.title('UMAP embedding CT images');
 sns.set_theme(style="white")
 sns.relplot(x=u[:,0], y= u[:,1], hue=species, alpha=.2, palette="muted",
             height=10).set(title = 'UMAP embedding coloured by species')
-plt.savefig('output/figs/allimgs/umap_species.png', dpi='figure', )
+plt.savefig('output/figs/allimgs/umap_species_norm.png', dpi='figure')
 
 #plot - all coloured by ct_site
 sns.set_theme(style="white")
-sns.relplot(x=u[:,0], y= u[:,1], hue=ct_site, alpha=.2, palette="muted",
-            height=10).set(title = 'UMAP embedding coloured by cite')
-plt.savefig('output/figs/allimgs/umap_sites.png', dpi='figure', )
+sns.relplot(x=u[:,0], y= u[:,1], hue=ct_site, alpha=.2, palette="mako",
+            height=10).set(title = 'UMAP embedding coloured by site')
+plt.savefig('output/figs/allimgs/umap_sites_norm.png', dpi='figure')
 
 #plots coloured by management zone
 sns.set_theme(style="white")
-sns.relplot(x=u[:,0], y= u[:,1], hue=mgmt, alpha=.2, palette="muted",
+sns.relplot(x=u[:,0], y= u[:,1], hue=mgmt, alpha=.2, palette="mako",
             height=10).set(title = 'UMAP embedding coloured by management zone')
-plt.savefig('output/figs/allimgs/umap_mgmt.png', dpi='figure')
+plt.savefig('output/figs/allimgs/umap_mgmt_norm.png', dpi='figure')
 
 #plots coloured by time of day
 sns.set_theme(style="white")
-sns.relplot(x=u[:,0], y= u[:,1], hue=time_hour, alpha=.2, palette="muted",
+sns.relplot(x=u[:,0], y= u[:,1], hue=time_hour, alpha=.2, palette="rocket",
             height=10).set(title = 'UMAP embedding coloured by time of day')
 plt.savefig('output/figs/allimgs/umap_hour.png', dpi='figure')
 
@@ -158,36 +164,111 @@ plt.legend(legend1)
 
 #find optimal k for each site
 #the max number of species seen at any site is 14.
-kmax = 30
-kcomp = pd.DataFrame(set(ct_site), columns = ['site'])
-kcomp['numimgs'] = pd.NaT
-kcomp['nspecies'] = pd.NaT
-kcomp['optimK'] = pd.NaT
 
 
-kcomp = kcomp.reset_index()  # make sure indexes pair with number of rows
-print('Beginning k-means clustering')
+
+#testing stability of k predictions:
+#everytime you reduce features using UMAP, the output is based on a random sequence
+#however, hopefully the points which are similar to each other will come out the same.
+#if optimal k comes out the same each time, then the analysis is stable.
+
+for i in range(1,5):
+	x = vecsbysite['BZ03']
+	kmax = 30
+	dim = 512 #need to reduce dimensions
+	embedding = umap.UMAP(n_components=dim).fit_transform(x)
+	for k in range(2, kmax+1):
+  		kmeans = cluster.KMeans(n_clusters = k).fit(embedding)
+  		labels = kmeans.labels_ #underscore is needed
+  		sil.append(metrics.silhouette_score(embedding, labels, metric = 'euclidean'))
+	#find index of max silhouette and add 2 (0 = 2)
+	optimk = sil.index(max(sil))+2
+	print(f'{i} = {optimk}')
+'''
+#output:
+1 = 3
+2 = 3
+3 = 3
+4 = 3
+5 = 3
+6 = 3
+7 = 3
+'''
+
+#possible parameters
+#clusterable_embedding = umap.UMAP(
+    #n_neighbors=30,
+    #min_dist=0.0,
+    #n_components=4,
+    #random_state=42,
+#).fit_transform(x)
+
+#finding optimal K for each site, testing dimensionality
+k_PN = pd.DataFrame(sorted(set(ct_site)), columns = ['site'])
+k_PN['numimgs'] = pd.NaT
+k_PN['nspecies'] = pd.NaT
+k_PN['OK_2048'] = pd.NaT
+k_PN['OK_512'] = pd.NaT
+k_PN['OK_128'] = pd.NaT
+k_PN['OK_32'] = pd.NaT
+k_PN['OK_8'] = pd.NaT
+k_PN['OK_2'] = pd.NaT
+
+
+dimensions = [2048,512,128,32,8,2]
+kcomp = k_PN #just for the testing part
+kcomp = kcomp.reset_index()  # make sure indexes pair with number of row
+
 for index,row in kcomp.iterrows():
-	sil = []
+	kmax = 15
 	site = row['site']
 	x = vecsbysite[site]
 	y = specsbysite[site]
 	kcomp['numimgs'][index] = len(x)
 	kcomp['nspecies'][index] = len(set(y))
-	print(f'Finding optimal k for site {site}')
 	#finding optimal value of k using the silhouette coefficient
-	if len(x) < 50:
-		kcomp['optimK'][index] = 'NA'
-	else:
-		for k in range(2, kmax+1):
-  			kmeans = cluster.KMeans(n_clusters = k).fit(x)
-  			labels = kmeans.labels_ #underscore is needed
-  			sil.append(metrics.silhouette_score(x, labels, metric = 'euclidean'))
-  			#find index of max silhouette and add 2 (0 = 2)
-  			optimk = sil.index(max(sil))+2
-  			kcomp['optimK'][index] = optimk
+	#if number of samples is less than kmax, change optimK
+	for dim in dimensions:
+		sil = []
+		print(f'Finding optimal k for site {site} with {dim} dimensions')
+		if len(x) > 5:
+			embedding = umap.UMAP(init = 'random', n_components=dim).fit_transform(x)
+			if len(x) <= kmax:
+				kmax = len(x)-1
+				for k in range(2, kmax+1):
+					print(f'k = {k}')
+  					kmeans = cluster.KMeans(n_clusters = k).fit(embedding)
+  					labels = kmeans.labels_ #underscore is needed
+  					sil.append(metrics.silhouette_score(embedding, labels, metric = 'euclidean'))
+  				#find index of max silhouette and add 2 (0 = 2)	
+  				optimk = sil.index(max(sil))+2
+			else:
+				for k in range(2, kmax+1):
+					print(f'k = {k}')
+  					kmeans = cluster.KMeans(n_clusters = k).fit(embedding)
+  					labels = kmeans.labels_ #underscore is needed
+  					sil.append(metrics.silhouette_score(embedding, labels, metric = 'euclidean'))
+  					#find index of max silhouette and add 2 (0 = 2)
+  				optimk = sil.index(max(sil))+2
+  		else:
+			optimk = 'NA'
+  		column = ('OK_' + str(dim))
+  		kcomp[column][index] = optimk
+  		print(f'Optimal cluster number = {optimk}')
+
+k_PN = kcomp
 
 #save
-kcomp.to_csv('output/kmeans_nspecies_comp.csv', index=False)
+k_PN.to_csv('output/kmeans_PN_dims.csv', index=False)
+
+#HBDSCAN clustering
+
+
+
+
+#repeat for Swav and for iNat model
+
+
+
 
 
