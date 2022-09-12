@@ -17,6 +17,9 @@ from torch.utils.data import DataLoader
 from torch.optim import SGD
 
 import umap as ump
+import sklearn.cluster as cluster
+from sklearn import metrics, datasets
+from sklearn.metrics import pairwise_distances, adjusted_rand_score, adjusted_mutual_info_score
 
 # let's import our own classes and functions!
 from dataset import CTDataset
