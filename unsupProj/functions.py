@@ -16,6 +16,8 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.optim import SGD
 
+import umap
+
 # let's import our own classes and functions!
 from dataset import CTDataset
 from model import CustomPegNet50
