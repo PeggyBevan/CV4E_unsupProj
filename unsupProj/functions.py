@@ -16,7 +16,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.optim import SGD
 
-import umap
+import umap as ump
 
 # let's import our own classes and functions!
 from dataset import CTDataset
@@ -85,7 +85,7 @@ def findk(kcomp, dimensions, vecsbysite, specsbysite, kmax=15):
             sil = []
             print(f'Finding optimal k for site {site} with {dim} dimensions')
             if len(x) > 5: #the 5 is arbitrary
-                embedding = umap.UMAP(init = 'random', n_components=dim).fit_transform(x)
+                embedding = ump.UMAP(init = 'random', n_components=dim).fit_transform(x)
                 if len(x) <= kmax:
                     kmax = len(x)-1
                     for k in range(2, kmax+1):
