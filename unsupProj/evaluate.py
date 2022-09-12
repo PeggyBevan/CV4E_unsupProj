@@ -31,14 +31,14 @@ from sklearn.metrics import pairwise_distances, adjusted_rand_score, adjusted_mu
 
 #read in numpy arrays - output from predict.py
 print('reading in feature vectors')
-features_PN = np.load('output/Swav_fvect.npy')
-imgs_PN = np.load('output/Swav_imgvect.npy')
+features_PN = np.load('output/PegNet_fvect_norm.npy')
+imgs_PN = np.load('output/PegNet_imgvect_norm.npy')
 
 features_Sw = np.load('output/Swav_fvect.npy')
 imgs_Sw = np.load('output/Swav_imgvect.npy')
 
-features_EB = np.load('output/Emb_fvect.npy')
-imgs_EB = np.load('output/Emb_imgvect.npy')
+features_EB = np.load('output/EmbNet/Emb_fvect.npy')
+imgs_EB = np.load('output/EmbNet/Emb_imgvect.npy')
 
 
 
@@ -64,7 +64,7 @@ time_hour = np.array(meta.time_hour)
 print('Organising data by site')
 vecsbysite = {}
 for site in sorted(set(ct_site)):
-	vecsbysite[site] = features_EB[ct_site==site]
+	vecsbysite[site] = features[ct_site==site]
 
 specsbysite = {}
 for site in sorted(set(ct_site)):
@@ -85,6 +85,25 @@ json.dumps(vecsbymgmt)
 json.dumps(specsbymgmt)
 '''	
 
+#create dataset with only day time images in.
+#want hour to be >6 and <18
+dayfeatures = np.array(23895,2048)
+dayhour = np.array(23895,)
+dayspecies = np.array()
+daymgmt = np.array()
+daysite = np.array()
+for i, v in enumerate(features):
+	if time_hour[i] >= 6 and time_hour[i] <= 18:
+		dayfeatures = np.append(dayfeatures, v)
+		dayhour = np.append(dayhour, time_hour[i])
+		dayspecies = np.append(dayspecies, species[i])
+		daymgmt = np.append(daymgmt, mgmt[i])
+		daysite = np.append(daysite, ct_site[i])
+
+
+dayfeatures  = np.vstack(dayfeatures) #turn back into array
+
+
 #Visualising entire dataset
 #create umap object
 print('Plotting UMAP embeddings for entire dataset')
@@ -98,27 +117,30 @@ plt.title('UMAP embedding CT images');
 
 #plot - all images coloured by species
 sns.set_theme(style="white")
-sns.relplot(x=u[:,0], y= u[:,1], hue=species, alpha=.2, palette="muted",
-            height=10).set(title = 'UMAP embedding coloured by species')
-plt.savefig('output/figs/allimgs/umap_species_norm.png', dpi='figure')
+hue_order = set(species)
+sns.relplot(x=u[:,0], y= u[:,1], hue=species, , hue_order = hue_order, alpha=.2, palette="muted",
+            height=10).set(title = 'EmbNet embeddings coloured by species')
+plt.savefig('output/figs/allimgs/umap_species_Emb.png', dpi='figure')
 
 #plot - all coloured by ct_site
-sns.set_theme(style="white")
-sns.relplot(x=u[:,0], y= u[:,1], hue=ct_site, alpha=.2, palette="mako",
+sns.set_theme(style="white")\
+hue_order = sorted(ct_site)
+sns.relplot(x=u[:,0], y= u[:,1], hue=ct_site, hue_order=hue_order, alpha=.2, palette="mako",
             height=10).set(title = 'UMAP embedding coloured by site')
-plt.savefig('output/figs/allimgs/umap_sites_norm.png', dpi='figure')
+plt.savefig('output/figs/allimgs/umap_sites_Emb.png', dpi='figure')
 
 #plots coloured by management zone
 sns.set_theme(style="white")
-sns.relplot(x=u[:,0], y= u[:,1], hue=mgmt, alpha=.2, palette="mako",
+hue_order = ['NP, BZ','OBZ']
+sns.relplot(x=u[:,0], y= u[:,1], hue=mgmt, hue_order = hue_order, alpha=.2, palette="mako",
             height=10).set(title = 'UMAP embedding coloured by management zone')
-plt.savefig('output/figs/allimgs/umap_mgmt_norm.png', dpi='figure')
+plt.savefig('output/figs/allimgs/umap_mgmt_Emb.png', dpi='figure')
 
 #plots coloured by time of day
 sns.set_theme(style="white")
 sns.relplot(x=u[:,0], y= u[:,1], hue=time_hour, alpha=.2, palette="rocket",
             height=10).set(title = 'UMAP embedding coloured by time of day')
-plt.savefig('output/figs/allimgs/umap_hour.png', dpi='figure')
+plt.savefig('output/figs/allimgs/umap_hour_Emb.png', dpi='figure')
 
 print('Plots saved!')
 '''
@@ -227,42 +249,46 @@ dimensions = [2048,512,128,32,8,2]
 kcomp = k_PN #just for the testing part
 kcomp = kcomp.reset_index()  # make sure indexes pair with number of row
 
-for index,row in kcomp.iterrows():
-	kmax = 15
-	site = row['site']
-	x = vecsbysite[site]
-	y = specsbysite[site]
-	kcomp['numimgs'][index] = len(x)
-	kcomp['nspecies'][index] = len(set(y))
-	#finding optimal value of k using the silhouette coefficient
-	#if number of samples is less than kmax, change optimK
-	for dim in dimensions:
-		sil = []
-		print(f'Finding optimal k for site {site} with {dim} dimensions')
-		if len(x) > 5:
-			embedding = umap.UMAP(init = 'random', n_components=dim).fit_transform(x)
-			if len(x) <= kmax:
-				kmax = len(x)-1
-				for k in range(2, kmax+1):
-					print(f'k = {k}')
-					kmeans = cluster.KMeans(n_clusters = k).fit(embedding)
-					labels = kmeans.labels_ #underscore is needed
-					sil.append(metrics.silhouette_score(embedding, labels, metric = 'euclidean'))
-				#find index of max silhouette and add 2 (0 = 2)	
-				optimk = sil.index(max(sil))+2
+#kcomp is a dataframe with numimgs, nspecies, and a column called 'OK_dim' for each dimension
+#dimensions is a list
+#vecs & specs by site is a dictionary with list of vectors and labels in the same order
+def findk(kcomp, dimensions, vecsbysite, specsbysite, kmax=15):
+	for index,row in kcomp.iterrows():
+		site = row['site']
+		x = vecsbysite[site]
+		y = specsbysite[site]
+		kcomp['numimgs'][index] = len(x)
+		kcomp['nspecies'][index] = len(set(y))
+		#finding optimal value of k using the silhouette coefficient
+		#if number of samples is less than kmax, change optimK
+		for dim in dimensions:
+			sil = []
+			print(f'Finding optimal k for site {site} with {dim} dimensions')
+			if len(x) > 5: #the 5 is arbitrary
+				embedding = umap.UMAP(init = 'random', n_components=dim).fit_transform(x)
+				if len(x) <= kmax:
+					kmax = len(x)-1
+					for k in range(2, kmax+1):
+						print(f'k = {k}')
+						kmeans = cluster.KMeans(n_clusters = k).fit(embedding)
+						labels = kmeans.labels_ #underscore is needed
+						sil.append(metrics.silhouette_score(embedding, labels, metric = 'euclidean'))
+					#find index of max silhouette and add 2 (0 = 2)	
+					optimk = sil.index(max(sil))+2
+				else:
+					for k in range(2, kmax+1):
+						print(f'k = {k}')
+						kmeans = cluster.KMeans(n_clusters = k).fit(embedding)
+						labels = kmeans.labels_ #underscore is needed
+						sil.append(metrics.silhouette_score(embedding, labels, metric = 'euclidean'))
+						#find index of max silhouette and add 2 (0 = 2)
+					optimk = sil.index(max(sil))+2
 			else:
-				for k in range(2, kmax+1):
-					print(f'k = {k}')
-					kmeans = cluster.KMeans(n_clusters = k).fit(embedding)
-					labels = kmeans.labels_ #underscore is needed
-					sil.append(metrics.silhouette_score(embedding, labels, metric = 'euclidean'))
-					#find index of max silhouette and add 2 (0 = 2)
-				optimk = sil.index(max(sil))+2
-		else:
-			optimk = 'NA'
-		column = ('OK_' + str(dim))
-		kcomp[column][index] = optimk
-		print(f'Optimal cluster number = {optimk}')
+				optimk = 'NA'
+			column = ('OK_' + str(dim))
+			kcomp[column][index] = optimk
+			print(f'Optimal cluster number = {optimk}')
+
 k_EB = kcomp
 k_PN = kcomp
 
@@ -285,6 +311,87 @@ dimensions = [2048,512,128,32,8,2]
 kcomp = k_EB #just for the testing part
 kcomp = kcomp.reset_index()  # make sure indexes pair with number of row
 
+
+
+#Plot day time features only
+print('Plotting UMAP embeddings for day time images')
+fit = umap.UMAP()
+u = fit.fit_transform(dayfeatures) #this line can take a while
+
+
+#initial plot, no colours
+plot = plt.scatter(u[:,0], u[:,1])
+plt.title('UMAP embedding CT images');
+
+#plot - all images coloured by species
+sns.set_theme(style="white")
+sns.relplot(x=u[:,0], y= u[:,1], hue=dayspecies, alpha=.2, palette="muted",
+            height=10).set(title = 'EmbNet embeddings daytime coloured by species')
+plt.savefig('output/figs/allimgs/umap_dayspecies_PN.png', dpi='figure')
+
+#plot - all coloured by ct_site
+sns.set_theme(style="white")\
+hue_order = sorted(daysite)
+sns.relplot(x=u[:,0], y= u[:,1], hue=daysite, hue_order=hue_order, alpha=.2, palette="mako",
+            height=10).set(title = 'UMAP embedding coloured by site, day time only')
+plt.savefig('output/figs/allimgs/umap_daysites_PN.png', dpi='figure')
+
+#plots coloured by management zone
+sns.set_theme(style="white")
+hue_order = ['NP', 'BZ','OBZ']
+sns.relplot(x=u[:,0], y= u[:,1], hue=daymgmt, hue_order = hue_order, alpha=.2, palette="mako",
+            height=10).set(title = 'UMAP embedding coloured by management zone, day time only')
+plt.savefig('output/figs/allimgs/umap_daymgmt_PN.png', dpi='figure')
+
+#plots coloured by time of day
+sns.set_theme(style="white")
+sns.relplot(x=u[:,0], y= u[:,1], hue=dayhour, alpha=.2, palette="rocket",
+            height=10).set(title = 'UMAP embedding coloured by time of day, datime only')
+plt.savefig('output/figs/allimgs/umap_dayhour_PN.png', dpi='figure')
+
+print('Plots saved!')
+
+#kmeans on day time pictures, only 2048 dimensions
+
+np.array(dayspecies)
+np.array(daysite)
+
+vecsbysite = {}
+for site in sorted(set(daysite)):
+	vecsbysite[site] = dayfeatures[daysite==site]
+
+specsbysite = {}
+for site in sorted(set(daysite)):
+	specsbysite[site] = dayspecies[daysite==site]
+
+k_PN_day = pd.DataFrame(sorted(set(ct_site)), columns = ['site'])
+k_PN_day['numimgs'] = pd.NaT
+k_PN_day['nspecies'] = pd.NaT
+k_PN_day['OK_2048'] = pd.NaT
+
+
+
+kcomp = k_PN_day
+kcomp = kcomp.reset_index()
+for index,row in kcomp.iterrows():
+	kmax = 15
+	site = row['site']
+	x = vecsbysite[site]
+	y = specsbysite[site]
+	kcomp['numimgs'][index] = len(x)
+	kcomp['nspecies'][index] = len(set(y))
+	if len(x) > 5:
+		embedding = umap.UMAP(init = 'random', n_components=dim).fit_transform(x)
+
+
+
+#possible parameters
+#clusterable_embedding = umap.UMAP(
+    #n_neighbors=30,
+    #min_dist=0.0,
+    #n_components=4,
+    #random_state=42,
+#).fit_transform(x)
 
 #HBDSCAN clustering
 

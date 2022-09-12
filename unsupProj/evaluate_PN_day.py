@@ -1,6 +1,8 @@
 
 '''
-	Taking in feature vectors from model and visualising using UMAP - SWAV
+	Taking in feature vectors from model and visualising using UMAP - PegNet (ResNet50), day time images
+	Running kmeans clustering
+
 	Peggy Bevan Aug 2022
 '''
 
@@ -125,4 +127,3 @@ dimensions = [2048]
 test = findk(kcomp = k_PN_day, dimensions = dimensions, vecsbysite = vecsbysite, specsbysite = specsbysite)
 
 k_PN_day.to_csv('output/kmeans_PN_day.csv', index=False)
-
