@@ -206,11 +206,77 @@ test = findk(kcomp = k_EB_day, dimensions = dimensions, vecsbysite = vecsbysite,
 k_EB_day.to_csv('output/kmeans_EB_day.csv', index=False)
 
 
-#HBDSCAN on day
+#HBDSCAN on day time pics only.
 #testing on one site - BZ08
 x = vecsbysite['BZ08']
-lowd_BZ08 = PCA(n_components=50).fit_transform(x)
-hdbscan_labels = hdbscan.HDBSCAN(min_samples=10, min_cluster_size=2).fit_predict(lowd_BZ08)
+y = specsbysite['BZ08']
+lowd = umap.UMAP().fit_transform(x)
+#we can plot this
+sns.set_theme(style="white")
+sns.relplot(x=lowd[:,0], y= lowd[:,1], hue=y, alpha=.4, palette="muted",
+            height=10).set(title = 'EmbNet embeddings daytime coloured by species, BZ08')
+plt.savefig('output/figs/BySite/umap_EBd_BZ08.png', dpi='figure')
+
+
+x = vecsbysite['NP10']
+y = specsbysite['NP10']
+lowd = umap.UMAP().fit_transform(x)
+#we can plot this
+sns.set_theme(style="white")
+sns.relplot(x=lowd[:,0], y= lowd[:,1], hue=y, alpha=.4, palette="muted",
+            height=10).set(title = 'EmbNet embeddings daytime coloured by species, NP10')
+
+
+#With HDBSCAN, you give a minimum number of clusters only, and the alogorithm sets
+# finds the optimal number, so no need to search for best number.
+#You just set min number of clusters and min size of clusters.
+
+#funcion to make 2D representation from any site
+#relies on vecsbysite and specsbysite existing
+
+
+def lowD_site(site):
+	x = vecsbysite[site]
+	y = specsbysite[site]
+	#its important that UMAP results are reproducible e.g. randomstate
+	lowd = umap.UMAP(init = 'random').fit_transform(x)
+	return(lowd)
+
+lowd = lowD_site('BZ08')
+
+clusterer = hdbscan.HDBSCAN(min_cluster_size=30, min_samples = 15)
+clusterer.fit(lowd)
+#look at labels
+clusterer.labels_
+#check max number of labels:
+clusterer.labels_.max()
+#plot this:
+sns.relplot(x=lowd[:,0], y= lowd[:,1], hue=clusterer.labels_, alpha=.4, palette="muted")
+
+##NOtes 13/09
+# I found that playing around with the min cluster size changes the
+# predicted number of clusters. 
+# the best so far (from only looking at one site) seems to be 
+#min cluster size = 30, min_samples = 15. 
+#to show that I am not playing around, I need to do this a couple of times
+#with diff parameters and see what happens. 
+#For now, run clustering on every site to see how it looks overall. 
+#Then you can think about how to adjust paramters. 
+#But would be good to think about making function where parameters can be easily changed
+
+#First, lets see how this looks on another site.
+lowd = lowD_site('NP10')
+
+clusterer = hdbscan.HDBSCAN(min_cluster_size=30, min_samples = 15)
+clusterer.fit(lowd)
+#check max number of labels:
+clusterer.labels_.max()
+
+#plot this:
+sns.relplot(x=lowd[:,0], y= lowd[:,1], hue=clusterer.labels_, alpha=.4, palette="muted")
+sns.relplot(x=lowd[:,0], y= lowd[:,1], hue=specsbysite['NP10'], alpha=.4, palette="muted")
+
+
 
 #testing changing n_neigbours to 30 and min dist to 0
 clusterable_embedding = umap.UMAP(
@@ -225,5 +291,20 @@ labels = hdbscan.HDBSCAN(
     min_cluster_size=2,
 ).fit_predict(clusterable_embedding)
 
+#if you increase/decrease min_cluster size, min samples scales with it. 
+# so set independently 
+
+#how to test this on all sites, on all parameters
+#set site, n components, hdb min samples, min cluster size
+#for now, don't play around too much with UMAP - the clustering parameters
+#seem to be more important. I tried with a few dimensions and it didn't seem
+#to make a difference, except when I did no reduction (2048) and everyting
+#was classed as noise!
+
+# subset by site (Vecs by site)
+# get actual number of species and 
+# perform UMAP feature reduction by ncomponents (set random state so reproducible)
+# run clusterer with set parameters (could loop here)
+# spit out max number of clusters for the site
 
 
