@@ -11,10 +11,12 @@ import yaml, json
 #import pickle
 from model import CustomPegNet50
 from model import SwavNet
+from model import EmbModel
 from dataset import CTDataset
 from functions import create_dataloader, predict
 import torch
 import numpy as np
+from torchvision.models import resnet18, resnet50
 
 
 print('Running PegNet50')
@@ -63,7 +65,7 @@ SwavNet.cpu()
 
 #Run Omi's EmbModel
 print('Running EmbNet')
-checkpoint = torch.load('data/kenya_resnet50_simclr_2022_05_05__16_34_13.pt')
+checkpoint = torch.load('../../data/kenya_resnet50_simclr_2022_05_05__16_34_13.pt')
 args = checkpoint['args']
 
 EmbNet = EmbModel(eval(args['backbone']), args).to(args['device'])
@@ -71,7 +73,7 @@ msg = EmbNet.load_state_dict(checkpoint['state_dict'], strict=True)
 EmbNet = EmbNet.cuda()
 
 print('Model loaded successfully...')
-prediction_dict = predict(cfg, dl, EmbModel)
+prediction_dict = predict(cfg, dl, EmbNet)
 print('Prediction complete')
 vectors = prediction_dict['features']
 np.save("../../output/Emb_fvect.npy", vectors)

@@ -1,3 +1,10 @@
+'''
+Taking in feature vectors from EmbNet model and visualising
+Running Kmeans clustering on features
+Finding rank score
+Doing the same for day time images
+'''
+
 print('loading packages')
 import numpy as np
 import pickle
@@ -14,7 +21,11 @@ import sklearn.cluster as cluster
 from collections import defaultdict
 from sklearn import metrics, datasets
 from sklearn.metrics import pairwise_distances, adjusted_rand_score, adjusted_mutual_info_score
+#must be unsupProj dir
+from functions import findk
 
+
+#cd ../../
 features_EB = np.load('output/Emb_fvect.npy')
 imgs_EB = np.load('output/Emb_imgvect.npy')
 
@@ -35,6 +46,8 @@ time_hour = np.array(meta.time_hour)
 #it would be good to add land cover type
 #higher functional classification 
 	# canids, felids, small herbivore, large herbivore, domestic animal
+
+#--> if doing day time images, skip to next section
 
 #Visualising entire dataset
 #create umap object
@@ -146,3 +159,71 @@ for index,row in kcomp.iterrows():
 k_EB = kcomp
 
 k_EB.to_csv('output/kmeans_EB_dims.csv', index=False)
+
+
+
+
+
+#####-------repeat for daytime only------#######
+
+print('removing nocturnal images')
+dayfeatures = []
+dayhour = []
+dayspecies = []
+daymgmt = []
+daysite = []
+for i, v in enumerate(features_EB):
+	if time_hour[i] >= 6 and time_hour[i] <= 18:
+		dayfeatures.append(v)
+		dayhour.append(time_hour[i])
+		dayspecies.append(species[i])
+		daymgmt.append(mgmt[i])
+		daysite.append(ct_site[i])
+
+dayfeatures  = np.vstack(dayfeatures) #turn back into array
+dayhour = np.array(dayhour)
+dayspecies = np.array(dayspecies)
+daymgmt = np.array(daymgmt)
+daysite = np.array(daysite, dtype = 'object')
+
+vecsbysite = {}
+for site in sorted(set(daysite)):
+	vecsbysite[site] = dayfeatures[daysite==site]
+
+specsbysite = {}
+for site in sorted(set(daysite)):
+	specsbysite[site] = dayspecies[daysite==site]
+
+
+k_EB_day = pd.DataFrame(sorted(set(daysite)), columns = ['site'])
+k_EB_day['numimgs'] = pd.NaT
+k_EB_day['nspecies'] = pd.NaT
+k_EB_day['OK_2048'] = pd.NaT
+
+dimensions = [2048]
+test = findk(kcomp = k_EB_day, dimensions = dimensions, vecsbysite = vecsbysite, specsbysite = specsbysite)
+
+k_EB_day.to_csv('output/kmeans_EB_day.csv', index=False)
+
+
+#HBDSCAN on day
+#testing on one site - BZ08
+x = vecsbysite['BZ08']
+lowd_BZ08 = PCA(n_components=50).fit_transform(x)
+hdbscan_labels = hdbscan.HDBSCAN(min_samples=10, min_cluster_size=2).fit_predict(lowd_BZ08)
+
+#testing changing n_neigbours to 30 and min dist to 0
+clusterable_embedding = umap.UMAP(
+    n_neighbors=30,
+    min_dist=0.0,
+    n_components=512,
+    random_state=42,
+).fit_transform(x)
+
+labels = hdbscan.HDBSCAN(
+    min_samples=10,
+    min_cluster_size=2,
+).fit_predict(clusterable_embedding)
+
+
+
