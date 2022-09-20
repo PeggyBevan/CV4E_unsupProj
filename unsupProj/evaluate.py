@@ -25,14 +25,15 @@ import sklearn.cluster as cluster
 from collections import defaultdict
 from sklearn import metrics, datasets
 from sklearn.metrics import pairwise_distances, adjusted_rand_score, adjusted_mutual_info_score
+import datashader as ds
 
 %matplotlib auto #display plots
 
 
 #read in numpy arrays - output from predict.py
 print('reading in feature vectors')
-features_PN = np.load('output/PegNet_fvect_norm.npy')
-imgs_PN = np.load('output/PegNet_imgvect_norm.npy')
+features_PN = np.load('output/PegNet/PegNet_fvect_norm.npy')
+imgs_PN = np.load('output/PegNet/PegNet_imgvect_norm.npy')
 
 features_Sw = np.load('output/Swav_fvect.npy')
 imgs_Sw = np.load('output/Swav_imgvect.npy')
@@ -47,9 +48,11 @@ meta = pd.read_csv('data/nepal_cropsmeta_PB.csv')
 
 #meta has humans and vehicles in - remove
 anthro = ['human', 'vehicle']
+domes = ['buffalo', 'cow', 'dog', 'domestic_cat', 'domestic_chicken', 'domestic elephant', 'goat', 'sheep']
 meta = meta[-meta['species'].isin(anthro)]
 #only training
 meta = meta[meta['SetID']=='train']
+meta_wild = meta[-meta['species'].isin(domes)]
 
 #create numpy array for important variables
 ct_site = np.array(meta.ct_site)
@@ -87,40 +90,85 @@ json.dumps(specsbymgmt)
 
 #create dataset with only day time images in.
 #want hour to be >6 and <18
-dayfeatures = np.array(23895,2048)
-dayhour = np.array(23895,)
-dayspecies = np.array()
-daymgmt = np.array()
-daysite = np.array()
+dayfeatures = []
+dayhour = []
+dayspecies = []
+daymgmt = []
+daysite = []
 for i, v in enumerate(features):
 	if time_hour[i] >= 6 and time_hour[i] <= 18:
-		dayfeatures = np.append(dayfeatures, v)
-		dayhour = np.append(dayhour, time_hour[i])
-		dayspecies = np.append(dayspecies, species[i])
-		daymgmt = np.append(daymgmt, mgmt[i])
-		daysite = np.append(daysite, ct_site[i])
+		dayfeatures.append(v)
+		dayhour.append(time_hour[i])
+		dayspecies.append(species[i])
+		daymgmt.append(mgmt[i])
+		daysite.append(ct_site[i])
 
 
 dayfeatures  = np.vstack(dayfeatures) #turn back into array
 
 
-#Visualising entire dataset
+#create dataset with only wild animals
+
+#create numpy array for important variables
+ct_site_w = np.array(meta_wild.ct_site)
+species_w = np.array(meta_wild.species)
+mgmt_w = np.array(meta_wild.conservancy_name) 
+time_hour_w = np.array(meta_wild.time_hour)
+#it would be good to add land cover type
+#higher functional classification 
+	# canids, felids, small herbivore, large herbivore, domestic animal
+
+#set empty lists
+dayfeatures_w = []
+dayhour_w = []
+dayspecies_w = []
+daymgmt_w = []
+daysite_w = []
+
+features_w = []
+for i, v in enumerate(features):
+	if species[i] not in domes:
+		features_w.append(v)
+#convert back to numpy
+features_w  = np.vstack(features_w) #turn back into array
+
+for i, v in enumerate(features_w):
+	if time_hour_w[i] >= 6 and time_hour_w[i] <= 18:
+		dayfeatures_w.append(v)
+		dayhour_w.append(time_hour_w[i])
+		dayspecies_w.append(species_w[i])
+		daymgmt_w.append(mgmt_w[i])
+		daysite_w.append(ct_site_w[i])
+
+
+dayfeatures_w  = np.vstack(dayfeatures_w) #turn back into array
+
+
+#####----Visualising entire dataset-----######
 #create umap object
 print('Plotting UMAP embeddings for entire dataset')
-fit = umap.UMAP()
-u = fit.fit_transform(features) #this line can take a while
-
-
-#initial plot, no colours
-plot = plt.scatter(u[:,0], u[:,1])
-plt.title('UMAP embedding CT images');
+#we can plot using UMAP - this is not that good when you have lots of labels
+u = umap.UMAP(random_state = 42).fit(features)
+umap.plot.points(u)
+u = umap.UMAP(n_neighbors = 30, min_dist = 0.0).fit(features)
+umap.plot.points(u)
 
 #plot - all images coloured by species
-sns.set_theme(style="white")
-hue_order = set(species)
-sns.relplot(x=u[:,0], y= u[:,1], hue=species, , hue_order = hue_order, alpha=.2, palette="muted",
-            height=10).set(title = 'EmbNet embeddings coloured by species')
-plt.savefig('output/figs/allimgs/umap_species_Emb.png', dpi='figure')
+#note - fit transform here converts the output to a normal df, rather than UMAP object.
+fit = umap.UMAP(random_state = 42)
+u = fit.fit_transform(features) #this line can take a while
+
+f, ax = plt.subplots(figsize=(10, 8))
+sns.set_style("dark")
+gpalette = sns.color_palette(cc.glasbey_bw, n_colors=32)
+g = sns.scatterplot(x=u[:,0], y= u[:,1], hue=species, alpha=.6, palette=gpalette, s = 3, ax = ax)
+sns.move_legend(g, "upper left", bbox_to_anchor=(1,1), frameon = False, fontsize = 10)
+plt.title('PegNet Embeddings, coloured by species', fontsize = 12)
+plt.tight_layout()
+plt.savefig('output/figs/allimgs/umap_species_PN.png', dpi='figure')
+
+
+#sns.relplot(x=u[:,0], y= u[:,1], hue=species, alpha=.2, palette="muted", size = 1, ax = ax).set(title = 'PegNet embeddings coloured by species')
 
 #plot - all coloured by ct_site
 sns.set_theme(style="white")\
@@ -143,6 +191,14 @@ sns.relplot(x=u[:,0], y= u[:,1], hue=time_hour, alpha=.2, palette="rocket",
 plt.savefig('output/figs/allimgs/umap_hour_Emb.png', dpi='figure')
 
 print('Plots saved!')
+
+
+#plotting just wild
+print('Plotting UMAP embeddings for entire dataset')
+fit = umap.UMAP(n_neighbors=60, min_dist = 0.0, random_state = 42)
+u = fit.fit_transform(features_w) #this line can take a while
+plot = sns.relplot(x = u[:,0], y = u[:,1]).set(title = 'UMAP embedding')
+plot = sns.relplot(x = u[:,0], y = u[:,1], hue = species_w, alpha=0.2).set(title = 'UMAP embedding')
 '''
 #plotting for one ct site
 fit = umap.UMAP()

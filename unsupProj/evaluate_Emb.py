@@ -301,10 +301,122 @@ labels = hdbscan.HDBSCAN(
 #to make a difference, except when I did no reduction (2048) and everyting
 #was classed as noise!
 
-# subset by site (Vecs by site)
-# get actual number of species and 
-# perform UMAP feature reduction by ncomponents (set random state so reproducible)
-# run clusterer with set parameters (could loop here)
-# spit out max number of clusters for the site
+
+
+##RUNNING HDBSCAN ON ALL SITES
+#set clusterer before loop
+clusterer = hdbscan.HDBSCAN(min_cluster_size=30, min_samples = 15)
+
+df = pd.DataFrame(sorted(set(daysite)), columns = ['site'])
+df['nspecies'] = pd.NaT
+df['nimgs'] = pd.NaT
+df['labels_30_15'] = pd.NaT
+df['noise_30_15'] = pd.NaT
+
+
+
+def hdbfinder(df, clusterer, ClusterCol, NoiseCol ):
+	for index, row in df.iterrows():
+		site = row['site']
+		x = vecsbysite[site]
+		y = specsbysite[site]
+		print(f'Performing clustering for site {site}')
+		#get some ground-truth metrics from data
+		df['nimgs'][index] = len(x)
+		df['nspecies'][index] = len(set(y))
+		if len(x) > 5:
+			#reduce vectors to 2 dims
+			lowd = umap.UMAP(random_state = 42).fit_transform(x)
+			clusterer.fit(lowd)
+			#check max number of labels (+1 to include 0)
+			df[ClusterCol][index] = clusterer.labels_.max()+1
+			#number of points that can't be assigned (label = -1)
+			df[NoiseCol][index] = len(clusterer.labels_[clusterer.labels_<0])
+		else:
+			print(f'{site} has low sample size, moving on')
+			df[ClusterCol][index] = pd.NaT
+			df[NoiseCol][index] = pd.NaT
+
+sns.histplot(df.labels_30_15.dropna())
+plt.savefig('output/figs/HDBSCAN/EBd_30_15.png', dpi = 'figure')
+
+clusterer = hdbscan.HDBSCAN(min_cluster_size=5)
+df['labels_5'] = pd.NaT
+df['noise_5'] = pd.NaT
+hdbfinder(df, clusterer, 'labels_5', 'noise_5')
+sns.histplot(df.labels_5.dropna())
+plt.savefig('output/figs/HDBSCAN/EBd_30_15.png', dpi = 'figure')
+
+
+clusterer = hdbscan.HDBSCAN(min_cluster_size=15)
+df['labels_15'] = pd.NaT
+df['noise_15'] = pd.NaT
+hdbfinder(df, clusterer, 'labels_15', 'noise_15')
+sns.histplot(df.labels_15.dropna())
+plt.savefig('output/figs/HDBSCAN/EBd_15.png', dpi = 'figure')
+
+
+clusterer = hdbscan.HDBSCAN(min_cluster_size=30)
+df['labels_30'] = pd.NaT
+df['noise_30'] = pd.NaT
+hdbfinder(df, clusterer, 'labels_30', 'noise_30')
+sns.histplot(df.labels_30.dropna())
+plt.savefig('output/figs/HDBSCAN/EBd_30.png', dpi = 'figure')
+
+clusterer = hdbscan.HDBSCAN(min_cluster_size=60)
+df['labels_60'] = pd.NaT
+df['noise_60'] = pd.NaT
+hdbfinder(df, clusterer, 'labels_60', 'noise_60')
+sns.histplot(df.labels_60.dropna())
+plt.savefig('output/figs/HDBSCAN/EBd_60.png', dpi = 'figure')
+
+clusterer = hdbscan.HDBSCAN(min_cluster_size=15, min_samples = 5)
+df['labels_15_5'] = pd.NaT
+df['noise_15_5'] = pd.NaT
+hdbfinder(df, clusterer, 'labels_15_5', 'noise_15_5')
+sns.histplot(df.labels_15_5.dropna())
+plt.savefig('output/figs/HDBSCAN/EBd_15_5.png', dpi = 'figure')
+
+clusterer = hdbscan.HDBSCAN(min_cluster_size=15, min_samples = 15)
+df['labels_15_15'] = pd.NaT
+df['noise_15_15'] = pd.NaT
+hdbfinder(df, clusterer, 'labels_15_15', 'noise_15_15')
+sns.histplot(df.labels_15_15.dropna())
+plt.savefig('output/figs/HDBSCAN/EBd_15_15.png', dpi = 'figure')
+
+clusterer = hdbscan.HDBSCAN(min_cluster_size=15, min_samples = 30)
+df['labels_15_30'] = pd.NaT
+df['noise_15_30'] = pd.NaT
+hdbfinder(df, clusterer, 'labels_15_30', 'noise_15_30')
+sns.histplot(df.labels_15_30.dropna())
+plt.savefig('output/figs/HDBSCAN/EBd_15_30.png', dpi = 'figure')
+
+
+#as min cluster increases, so does min samples.
+#lets see what happens when we reduce min samples and increase cluster size
+clusterer = hdbscan.HDBSCAN(min_cluster_size=30, min_samples = 5)
+df['labels_30_05'] = pd.NaT
+df['noise_30_05'] = pd.NaT
+hdbfinder(df, clusterer, 'labels_30_05', 'noise_30_05')
+sns.histplot(df.labels_30_05.dropna())
+plt.savefig('output/figs/HDBSCAN/EBd_30_05.png', dpi = 'figure')
+
+clusterer = hdbscan.HDBSCAN(min_cluster_size=60, min_samples = 5)
+df['labels_60_05'] = pd.NaT
+df['noise_60_05'] = pd.NaT
+hdbfinder(df, clusterer, 'labels_60_05', 'noise_60_05')
+sns.histplot(df.labels_30_05.dropna())
+plt.savefig('output/figs/HDBSCAN/EBd_30_05.png', dpi = 'figure')
+
+#parameters to test:
+#min cluster size: 5,15,30,60
+#min_samples: 5,15,30,60
+
+#just change cluster size, see how that makes a difference
+
+
+#UMAP:
+#n_neighbors: 15,30,60
+
 
 
