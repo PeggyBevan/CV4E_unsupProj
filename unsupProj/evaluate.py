@@ -165,27 +165,47 @@ g = sns.scatterplot(x=u[:,0], y= u[:,1], hue=species, alpha=.6, palette=gpalette
 sns.move_legend(g, "upper left", bbox_to_anchor=(1,1), frameon = False, fontsize = 10)
 plt.title('PegNet Embeddings, coloured by species', fontsize = 12)
 plt.tight_layout()
-plt.savefig('output/figs/allimgs/umap_species_PN.png', dpi='figure')
+plt.savefig('output/figs/allimgs/PegNet/umap_species_PN.png', dpi='figure')
 
 
 #sns.relplot(x=u[:,0], y= u[:,1], hue=species, alpha=.2, palette="muted", size = 1, ax = ax).set(title = 'PegNet embeddings coloured by species')
 
 #plot - all coloured by ct_site
+#skipping because it doesn't show anything meaningful - too many data points
+'''
 sns.set_theme(style="white")\
 hue_order = sorted(ct_site)
 sns.relplot(x=u[:,0], y= u[:,1], hue=ct_site, hue_order=hue_order, alpha=.2, palette="mako",
             height=10).set(title = 'UMAP embedding coloured by site')
 plt.savefig('output/figs/allimgs/umap_sites_Emb.png', dpi='figure')
+'''
+
 
 #plots coloured by management zone
-sns.set_theme(style="white")
-hue_order = ['NP, BZ','OBZ']
-sns.relplot(x=u[:,0], y= u[:,1], hue=mgmt, hue_order = hue_order, alpha=.2, palette="mako",
+f, ax = plt.subplots(figsize=(10, 8))
+sns.set_style("dark")
+g = sns.scatterplot(x=u[:,0], y= u[:,1], hue=mgmt, hue_order = ['NP', 'BZ','OBZ'], alpha=.6, palette='viridis', s = 3, ax = ax)
+sns.move_legend(g, "upper left", bbox_to_anchor=(1,1), frameon = False, fontsize = 10)
+plt.title('PegNet Embeddings, coloured by Management Regime', fontsize = 12)
+plt.tight_layout()
+plt.savefig('output/figs/allimgs/PegNet/umap_mgmt_PN.png', dpi='figure')
+
+#sns.relplot(x=u[:,0], y= u[:,1], hue=mgmt, hue_order = hue_order, alpha=.2, palette="mako",
             height=10).set(title = 'UMAP embedding coloured by management zone')
-plt.savefig('output/figs/allimgs/umap_mgmt_Emb.png', dpi='figure')
+
 
 #plots coloured by time of day
+f, ax = plt.subplots(figsize=(10, 8))
+sns.set_style("dark")
+gpalette = sns.color_palette(cc.CET_C11, as_cmap=True)
+g = sns.scatterplot(x=u[:,0], y= u[:,1], hue=time_hour, alpha=.6, palette = gpalette, s = 3, ax = ax)
+sns.move_legend(g, "upper left", bbox_to_anchor=(1,1), frameon = False, fontsize = 10)
+plt.title('PegNet Embeddings, coloured by time of day (hour)', fontsize = 12)
+plt.tight_layout()
+plt.savefig('output/figs/allimgs/PegNet/umap_hour_PN.png', dpi='figure')
+
 sns.set_theme(style="white")
+#hue_order = ['19.0', '20.0', '21.0', '22.0', '23.0', '0.0', '1.0', '2.0', '3.0', '4.0', '5.0', '6.0', '7.0', '8.0', '9.0', '10.0', '11.0', '12.0', '13.0', '14.0', '15.0', '16.0', '17.0', '18.0'],
 sns.relplot(x=u[:,0], y= u[:,1], hue=time_hour, alpha=.2, palette="rocket",
             height=10).set(title = 'UMAP embedding coloured by time of day')
 plt.savefig('output/figs/allimgs/umap_hour_Emb.png', dpi='figure')
