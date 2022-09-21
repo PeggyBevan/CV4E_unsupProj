@@ -180,7 +180,6 @@ sns.relplot(x=u[:,0], y= u[:,1], hue=ct_site, hue_order=hue_order, alpha=.2, pal
 plt.savefig('output/figs/allimgs/umap_sites_Emb.png', dpi='figure')
 '''
 
-
 #plots coloured by management zone
 f, ax = plt.subplots(figsize=(10, 8))
 sns.set_style("dark")
@@ -195,30 +194,120 @@ plt.savefig('output/figs/allimgs/PegNet/umap_mgmt_PN.png', dpi='figure')
 
 
 #plots coloured by time of day
+#custom colour plot 
+color_list = ['#000000', '#380000', '#560000', '#760100', '#980300', '#bb0600', '#df0d00', '#f93500', '#fe6800', '#ff9100', '#ffb402', '#ffd407', '#ffd407', '#ffb402', '#ff9100','#fe6800', '#f93500', '#df0d00','#bb0600','#980300','#760100', '#560000', '#380000','#000000']
+
 f, ax = plt.subplots(figsize=(10, 8))
 sns.set_style("dark")
-gpalette = sns.color_palette(cc.CET_C11, as_cmap=True)
-g = sns.scatterplot(x=u[:,0], y= u[:,1], hue=time_hour, alpha=.6, palette = gpalette, s = 3, ax = ax)
+gpalette = sns.color_palette(color_list)
+g = sns.scatterplot(x=u[:,0], y= u[:,1], hue=time_hour, palette = gpalette, alpha=.6, s = 3, ax = ax)
 sns.move_legend(g, "upper left", bbox_to_anchor=(1,1), frameon = False, fontsize = 10)
 plt.title('PegNet Embeddings, coloured by time of day (hour)', fontsize = 12)
 plt.tight_layout()
 plt.savefig('output/figs/allimgs/PegNet/umap_hour_PN.png', dpi='figure')
 
-sns.set_theme(style="white")
-#hue_order = ['19.0', '20.0', '21.0', '22.0', '23.0', '0.0', '1.0', '2.0', '3.0', '4.0', '5.0', '6.0', '7.0', '8.0', '9.0', '10.0', '11.0', '12.0', '13.0', '14.0', '15.0', '16.0', '17.0', '18.0'],
-sns.relplot(x=u[:,0], y= u[:,1], hue=time_hour, alpha=.2, palette="rocket",
-            height=10).set(title = 'UMAP embedding coloured by time of day')
-plt.savefig('output/figs/allimgs/umap_hour_Emb.png', dpi='figure')
+print('Plots (entire dataset) saved!')
 
-print('Plots saved!')
+#####-----Plotting features from day time images only----######
+features = dayfeatures
+#create umap object
+print('Plotting UMAP embeddings for daytime images')
+#we can plot using UMAP - this is not that good when you have lots of labels
+u = umap.UMAP(random_state = 42).fit(features)
+umap.plot.points(u)
+u = umap.UMAP(n_neighbors = 30, min_dist = 0.0).fit(features)
+umap.plot.points(u)
+
+#note - fit transform here converts the output to a normal df, rather than UMAP object.
+fit = umap.UMAP(random_state = 42, min_dist = 0.0)
+u = fit.fit_transform(features) #this line can take a while
+
+#plot - all images coloured by species
+#create order the same as other plot
+hue_order = ['chital','indian_grey_mongoose','macaque','goat','bird', 'cow',
+'wild_boar', 'buffalo', 'peacock', 'dog', 'domestic_cat', 'jackal',
+'jungle_cat', 'jungle_fowl', 'sheep', 'domestic_chicken', 'hare', 'grey_langur',
+'nilgai','sambar', 'barking_deer',  'four_horned_antelope',  'leopard',  
+'one_horned_rhino','elephant', 'tiger', 'hog_deer', 'porcupine', 'sloth_bear']
+#note - this makes nearly the same colours as full dataset plot, 
+#but need to find a way to add gaps
 
 
-#plotting just wild
+f, ax = plt.subplots(figsize=(10, 8))
+sns.set_style("dark")
+gpalette = sns.color_palette(cc.glasbey_bw, n_colors=29)
+g = sns.scatterplot(x=u[:,0], y= u[:,1], hue=dayspecies, hue_order = hue_order, alpha=.6, palette=gpalette, s = 3, ax = ax)
+sns.move_legend(g, "upper left", bbox_to_anchor=(1,1), frameon = False, fontsize = 10)
+plt.title('PegNet Embeddings, day time only, coloured by species', fontsize = 12)
+plt.tight_layout()
+plt.savefig('output/figs/allimgs/PegNet/umap_species_PNd.png', dpi='figure')
+
+#plots coloured by management zone
+f, ax = plt.subplots(figsize=(10, 8))
+sns.set_style("dark")
+g = sns.scatterplot(x=u[:,0], y= u[:,1], hue=daymgmt, hue_order = ['NP', 'BZ','OBZ'], alpha=.6, palette='viridis', s = 3, ax = ax)
+sns.move_legend(g, "upper left", bbox_to_anchor=(1,1), frameon = False, fontsize = 10)
+plt.title('PegNet Embeddings, day time only, coloured by Management Regime', fontsize = 12)
+plt.tight_layout()
+plt.savefig('output/figs/allimgs/PegNet/umap_mgmt_PNd.png', dpi='figure')
+
+#sns.relplot(x=u[:,0], y= u[:,1], hue=mgmt, hue_order = hue_order, alpha=.2, palette="mako",
+            height=10).set(title = 'UMAP embedding coloured by management zone')
+
+print('PegNet day time plots saved!')
+
+
+#######----Plotting features from wild animals only---#####
 print('Plotting UMAP embeddings for entire dataset')
-fit = umap.UMAP(n_neighbors=60, min_dist = 0.0, random_state = 42)
+fit = umap.UMAP(min_dist = 0.0, random_state = 42)
 u = fit.fit_transform(features_w) #this line can take a while
 plot = sns.relplot(x = u[:,0], y = u[:,1]).set(title = 'UMAP embedding')
 plot = sns.relplot(x = u[:,0], y = u[:,1], hue = species_w, alpha=0.2).set(title = 'UMAP embedding')
+
+features = features_w
+#create umap object
+print('Plotting UMAP embeddings for wild species only')
+#we can plot using UMAP - this is not that good when you have lots of labels
+
+#note - fit transform here converts the output to a normal df, rather than UMAP object.
+fit = umap.UMAP(random_state = 42, min_dist = 0.0)
+u = fit.fit_transform(features) #this line can take a while
+
+#plot - all images coloured by species
+#create order the same as other plot
+hue_order = ['chital','indian_grey_mongoose','macaque','goat','bird', 'cow',
+'wild_boar', 'buffalo', 'peacock', 'dog', 'domestic_cat', 'jackal',
+'jungle_cat', 'jungle_fowl', 'sheep', 'domestic_chicken', 'hare', 'grey_langur',
+'nilgai','sambar', 'barking_deer',  'four_horned_antelope',  'leopard',  
+'one_horned_rhino','elephant', 'tiger', 'hog_deer', 'porcupine', 'sloth_bear']
+#note - this makes nearly the same colours as full dataset plot, 
+#but need to find a way to add gaps
+
+
+f, ax = plt.subplots(figsize=(10, 8))
+sns.set_style("dark")
+gpalette = sns.color_palette(cc.glasbey_bw, n_colors=25)
+g = sns.scatterplot(x=u[:,0], y= u[:,1], hue=species_w, alpha=.6, palette=gpalette, s = 3, ax = ax)
+sns.move_legend(g, "upper left", bbox_to_anchor=(1,1), frameon = False, fontsize = 10)
+plt.title('PegNet Embeddings, wild species only, coloured by species', fontsize = 12)
+plt.tight_layout()
+plt.savefig('output/figs/allimgs/PegNet/umap_species_PNw.png', dpi='figure')
+
+#plots coloured by management zone
+f, ax = plt.subplots(figsize=(10, 8))
+sns.set_style("dark")
+g = sns.scatterplot(x=u[:,0], y= u[:,1], hue=mgmt_w, hue_order = ['NP', 'BZ','OBZ'], alpha=.6, palette='viridis', s = 3, ax = ax)
+sns.move_legend(g, "upper left", bbox_to_anchor=(1,1), frameon = False, fontsize = 10)
+plt.title('PegNet Embeddings, wild species only, coloured by Management Regime', fontsize = 12)
+plt.tight_layout()
+plt.savefig('output/figs/allimgs/PegNet/umap_mgmt_PNw.png', dpi='figure')
+
+#sns.relplot(x=u[:,0], y= u[:,1], hue=mgmt, hue_order = hue_order, alpha=.2, palette="mako",
+            height=10).set(title = 'UMAP embedding coloured by management zone')
+
+print('PegNet day time plots saved!')
+
+
 '''
 #plotting for one ct site
 fit = umap.UMAP()
@@ -387,45 +476,6 @@ dimensions = [2048,512,128,32,8,2]
 kcomp = k_EB #just for the testing part
 kcomp = kcomp.reset_index()  # make sure indexes pair with number of row
 
-
-
-#Plot day time features only
-print('Plotting UMAP embeddings for day time images')
-fit = umap.UMAP()
-u = fit.fit_transform(dayfeatures) #this line can take a while
-
-
-#initial plot, no colours
-plot = plt.scatter(u[:,0], u[:,1])
-plt.title('UMAP embedding CT images');
-
-#plot - all images coloured by species
-sns.set_theme(style="white")
-sns.relplot(x=u[:,0], y= u[:,1], hue=dayspecies, alpha=.2, palette="muted",
-            height=10).set(title = 'EmbNet embeddings daytime coloured by species')
-plt.savefig('output/figs/allimgs/umap_dayspecies_PN.png', dpi='figure')
-
-#plot - all coloured by ct_site
-sns.set_theme(style="white")\
-hue_order = sorted(daysite)
-sns.relplot(x=u[:,0], y= u[:,1], hue=daysite, hue_order=hue_order, alpha=.2, palette="mako",
-            height=10).set(title = 'UMAP embedding coloured by site, day time only')
-plt.savefig('output/figs/allimgs/umap_daysites_PN.png', dpi='figure')
-
-#plots coloured by management zone
-sns.set_theme(style="white")
-hue_order = ['NP', 'BZ','OBZ']
-sns.relplot(x=u[:,0], y= u[:,1], hue=daymgmt, hue_order = hue_order, alpha=.2, palette="mako",
-            height=10).set(title = 'UMAP embedding coloured by management zone, day time only')
-plt.savefig('output/figs/allimgs/umap_daymgmt_PN.png', dpi='figure')
-
-#plots coloured by time of day
-sns.set_theme(style="white")
-sns.relplot(x=u[:,0], y= u[:,1], hue=dayhour, alpha=.2, palette="rocket",
-            height=10).set(title = 'UMAP embedding coloured by time of day, datime only')
-plt.savefig('output/figs/allimgs/umap_dayhour_PN.png', dpi='figure')
-
-print('Plots saved!')
 
 #kmeans on day time pictures, only 2048 dimensions
 
