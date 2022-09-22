@@ -6,6 +6,7 @@ Peggy Bevan 2022
 
 import pandas as pd
 import seaborn as sns
+import numpy as np
 import matplotlib.pyplot as plt
 import umap
 import hdbscan
@@ -131,13 +132,43 @@ embedding = umap.UMAP(random_state = 42, min_dist = 0.0).fit_transform(x)
 
 f, ax = plt.subplots(figsize=(8, 8))
 sns.set_style("white")
-gpalette = sns.color_palette(cc.glasbey_bw, n_colors=25)
 g = sns.scatterplot(x=embedding[:,0], y= embedding[:,1], hue=y, alpha=.6, s = 3, ax = ax)
 sns.move_legend(g, "upper left", bbox_to_anchor=(1,1), frameon = False, fontsize = 10)
 plt.title('BZ03 Embeddings, compressed pre subset', fontsize = 12)
 plt.tight_layout()
 
 #This looks VERY different!
+#For some reason, performing UMAP twice on the data allows it to cluster way better.
+#It would be interesting to play with dimensions and see what happens
+
+#now, lets try k-means with this new method
+for i in range(1,5):
+	x = UMAPbysitePN['BZ03']
+	kmax = 10
+	sil = []
+	calh = []
+	print('Compressing to 2 dimensions')
+	embedding = umap.UMAP(random_state = 42, min_dist = 0.0).fit_transform(x)
+	print('Compression successful')
+	for k in range(2, kmax+1):
+  		kmeans = cluster.KMeans(n_clusters = k, random_state = 42).fit(embedding)
+  		labels = kmeans.labels_ #underscore is needed
+  		sil.append(metrics.silhouette_score(x, labels, metric = 'euclidean'))
+  		calh.append(metrics.calinski_harabasz_score(x, labels))
+	#find index of max silhouette and add 2 (0 = 2)
+	optimk = sil.index(max(sil))+2
+	optimk2 = calh.index(max(calh))+2
+	print(f'{i}:Silhoutte score n clusters = {optimk}\nCalinski Harabasz score n clusters = {optimk2}')
+
+#Notes - 22/09 - The C-H metric continually predicts max k, whatever that is set to.
+# So seems like it is overfitting quite a lot. It is also inconsistent, where silhouette always chooses the
+# same optimal K. 
+#Without random state - optimal k is very inconsistent.
+#With random state - the number is still jumping around a lot - between two numbers. 
+#There needs to be random state set in the kmeans clustering execution as well!!
+#Tried with NP10 as well - it just went to the maximum number of clusters...
+#Using x or embedding in the metrics: doesn't seem to make any diffence to 
+#output 
 
 #possible parameters
 #clusterable_embedding = umap.UMAP(
@@ -146,9 +177,6 @@ plt.tight_layout()
     #n_components=4,
     #random_state=42,
 #).fit_transform(x)
-
-
-
 
 
 #finding optimal K for each site, testing dimensionality
@@ -369,6 +397,63 @@ plt.savefig('output/figs/allimgs/EB_08.png', dpi='figure')
 sns.histplot(kmeans.OK_2).set(title = 'Optimal number of clusters by camera trap site')
 plt.savefig('output/figs/allimgs/EB_02.png', dpi='figure')
 
+
+####-----HDBSCAN----######
+
+clusterer = hdbscan.HDBSCAN(min_cluster_size=30, min_samples = 15)
+x = UMAPbysitePN['BZ03']
+embedding = umap.UMAP(random_state = 42, min_dist = 0.0).fit_transform(x)
+clusterer.fit(embedding)
+#look at labels
+clusterer.labels_
+#check max number of labels:
+clusterer.labels_.max()
+#plot this:
+sns.relplot(x=embedding[:,0], y= embedding[:,1], hue=clusterer.labels_, alpha=.4, palette="muted")
+
+clusterer = hdbscan.HDBSCAN(min_cluster_size=30, min_samples = 15)
+
+df = pd.DataFrame(sorted(set(ct_site)), columns = ['site'])
+df['nspecies'] = pd.NaT
+df['nimgs'] = pd.NaT
+df['labels_30_15'] = pd.NaT
+df['noise_30_15'] = pd.NaT
+
+def hdbfinder(df, clusterer, ClusterCol, NoiseCol ):
+	for index, row in df.iterrows():
+		site = row['site']
+		x = UMAPbysitePN[site]
+		y = specsbysite[site]
+		print(f'Performing clustering for site {site}')
+		#get some ground-truth metrics from data
+		df['nimgs'][index] = len(x)
+		df['nspecies'][index] = len(set(y))
+		if len(x) > 5:
+			#reduce vectors to 2 dims
+			lowd = umap.UMAP(random_state = 42, min_dist = 0.0).fit_transform(x)
+			clusterer.fit(lowd)
+			#check max number of labels (+1 to include 0)
+			df[ClusterCol][index] = clusterer.labels_.max()+1
+			#number of points that can't be assigned (label = -1)
+			df[NoiseCol][index] = len(clusterer.labels_[clusterer.labels_<0])
+		else:
+			print(f'{site} has low sample size, moving on')
+			df[ClusterCol][index] = pd.NaT
+			df[NoiseCol][index] = pd.NaT
+
+hdbfinder(df, clusterer, 'labels_30_15', 'noise_30_15')
+sns.histplot(df.labels_30_15).dropna()
+sns.scatterplot(x = df.nspecies, y = df.labels_30_15)
+
+#I think that min cluster size is impacting sites with low sample size, so
+# I want to see what happens when I reduce this number but keep min samples the same
+
+df['labels_05_15'] = pd.NaT
+df['noise_05_15'] = pd.NaT
+clusterer = hdbscan.HDBSCAN(min_cluster_size=5, min_samples = 15)
+hdbfinder(df, clusterer, 'labels_05_15', 'noise_05_15')
+sns.histplot(df.labels_05_15).dropna()
+sns.scatterplot(x = df.nspecies, y = df.labels_05_15)
 
 
 
