@@ -340,6 +340,7 @@ def hdbfinder(df, clusterer, ClusterCol, NoiseCol ):
 sns.histplot(df.labels_30_15.dropna())
 plt.savefig('output/figs/HDBSCAN/EBd_30_15.png', dpi = 'figure')
 
+
 clusterer = hdbscan.HDBSCAN(min_cluster_size=5)
 df['labels_5'] = pd.NaT
 df['noise_5'] = pd.NaT
