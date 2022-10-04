@@ -14,7 +14,7 @@ import sklearn.cluster as cluster
 from sklearn import metrics, datasets
 import colorcet as cc
 
-from functions import findk
+#from functions import findk
 
 #function for pop-up figure
 %matplotlib auto 
@@ -699,3 +699,51 @@ hdbfinder(dfEd, clusterer, 'labels_30_15', 'noise_30_15')
 dfEd2 = dfEd[dfEd.nimgs > 5]
 dfEd2 = dfEd2.reset_index()
 rank_EBHD_30_15_day = rankscore(dfEd2['nspecies'], dfEd2['labels_30_15'], dfEd2)
+
+
+#run find clusters function
+
+dfPN = pd.DataFrame(sorted(set(ct_site)), columns = ['site'])
+dfPN['nimgs'] = pd.NaT
+dfPN['nspecies'] = pd.NaT
+dfPN['OK'] = pd.NaT
+dfPN['HDB'] = pd.NaT
+dfPN['HDB_noise'] = pd.NaT
+
+clusterer = hdbscan.HDBSCAN(min_cluster_size=30, min_samples = 15)
+
+findclusters(df = dfPN, UMAPbysite = UMAPbysitePN, specsbysite = specsbysite, kmax=30)
+#create management variable
+dfPN['mgmt'] = pd.NaT
+for index, row in dfPN.iterrows():
+	if 'OBZ' in row['site']:
+		dfPN.mgmt[index] = 'OBZ'
+	elif 'NP' in row['site']:
+		dfPN.mgmt[index] = 'NP'
+	else:
+		dfPN.mgmt[index] = 'BZ'
+
+dfEB = pd.DataFrame(sorted(set(ct_site)), columns = ['site'])
+dfEB['nimgs'] = pd.NaT
+dfEB['nspecies'] = pd.NaT
+dfEB['OK'] = pd.NaT
+dfEB['HDB'] = pd.NaT
+dfEB['HDB_noise'] = pd.NaT
+
+findclusters(df = dfEB, UMAPbysite = UMAPbysiteEB, specsbysite = specsbysite, kmax=30)
+
+
+
+meltPN = pd.melt(dfPN, id_vars=['site', 'mgmt','nimgs'], value_vars = ['nspecies', 'OK', 'HDB'], var_name = 'method', value_name = 'n')
+#remove NA - sites with less than 5 sites
+meltPN = meltPN[meltPN.nimgs > 5]
+
+sns.boxplot(data = meltPN, x = "mgmt", y = "n", hue = "method", orient = 'v')
+
+
+sns.boxplot(data = meltPN[meltPN.nimgs > 30], x = "mgmt", y = "n", hue = "method", orient = 'v', order = ['NP', 'BZ', 'OBZ'])
+
+#add column of wild species richness only
+
+
+
