@@ -6,32 +6,40 @@
 #Packages
 #import numpy as np
 import pandas as pd
-#import os
+import os
 
 #Load csv - pandas
-VMdir = '/home/pegbev/data/'
-locdir = '/Users/peggybevan/OneDrive/My Documents/PhD/CameraTraps/CV4E/data/'
+#VMdir = '/home/pegbev/data/'
+locdir = '/Users/peggybevan/Library/CloudStorage/OneDrive-UniversityCollegeLondon/PhD/UnsupChapter/CV4E/data/'
 excel = 'nepal_cropsmeta_PB.csv'
-data = pd.read_csv(VMdir + excel)
-
+data = pd.read_csv(locdir + excel)
 print('Total length:',len(data))
 
+
 #remove paths containging human or vehicle.
-anthro = ['human', 'vehicle']
-	
+anthro = ['human', 'vehicle']	
 dfwild = data[-data['species'].isin(anthro)]
 
 print('Total length (wild):',len(dfwild))
 	
+#update img_path to fit with hard drive
 
-#create csv eith img_path, species, ct_site
+
+#create csv with img_path, species, ct_site
 train = dfwild[dfwild.SetID == 'train']
 train = train[['img_path', 'species', 'ct_site']]
 print('Train csv length', len(train))
 
 #save
-train.to_csv('home/pegbev/data/train.csv')
+path = "data"
+# Check whether the specified path exists or not
+if not os.path.exists(path):
+   # Create a new directory because it does not exist
+   os.makedirs(path)
 
+train.to_csv('data/train.csv')
+
+#create a list of image paths for the model to read
 #If SetID contains 'train', list img_path
 train_list = []
 for index, row in dfwild.iterrows():
@@ -43,18 +51,17 @@ print('Total train set size:', len(train_list))
 
 
 #save as text file 
-f = open('/home/pegbev/data/train.txt', 'a')
+f = open('data/train.txt', 'a')
 f.writelines(train_list)
 f.close()
 
-
-#create csv eith img_path, species, ct_site
+#create csv with img_path, species, ct_site
 val = dfwild[dfwild.SetID == 'val']
 val = val[['img_path', 'species', 'ct_site']]
 print('Val csv length', len(val))
 
 #save
-val.to_csv('home/pegbev/data/val.csv')
+val.to_csv('data/val.csv')
 
 #If SetID contains 'val', list img_path
 val_list = []
@@ -65,18 +72,17 @@ for index, row in dfwild.iterrows():
 print('Total val set size:', len(val_list))
 
 #save as text file 
-f = open('/home/pegbev/data/val.txt', 'a')
+f = open('data/val.txt', 'a')
 f.writelines(val_list)
 f.close()
 
-
-#create csv eith img_path, species, ct_site
+#create csv with img_path, species, ct_site
 test = dfwild[dfwild.SetID == 'test']
 test = test[['img_path', 'species', 'ct_site']]
 print('Test csv length', len(test))
 
 #save
-test.to_csv('home/pegbev/data/test.csv')
+test.to_csv('data/test.csv')
 
 #If SetID contains 'test', list img_path
 test_list = []
@@ -87,8 +93,6 @@ for index, row in dfwild.iterrows():
 print('Total test set size:', len(test_list))
 
 #save as text file 
-f = open('/home/pegbev/data/test.txt', 'a')
+f = open('data/test.txt', 'a')
 f.writelines(test_list)
 f.close()
-
-
