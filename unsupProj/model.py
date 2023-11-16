@@ -4,8 +4,8 @@
     2022 Peggy Bevan
 '''
 
-import torch.nn as nn
 import torch
+import torch.nn as nn
 from torchvision.models import resnet
 
 #Class name is whatever you want it to be. nn.Module inherits 
@@ -39,7 +39,7 @@ class CustomPegNet50(nn.Module):
         '''
         # x.size(): [B x 3 x W x H]
         features = self.feature_extractor(x)    # features.size(): [B x 512 x W x H]
-        #I don't care about prediction - just want to ouput features
+        #I don't care about prediction - just want to output features
         #prediction = self.classifier(features)  # prediction.size(): [B x num_classes]
 
         return features

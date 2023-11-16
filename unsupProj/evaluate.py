@@ -17,7 +17,7 @@ pd.options.mode.chained_assignment = None  # default='warn' #stop pd warning abo
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import seaborn as sns
-#!pip install umap-learn
+#!conda install -c conda-forge umap-learn
 import umap
 import json
 import hdbscan
