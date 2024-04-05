@@ -47,11 +47,11 @@ if __name__ ==  '__main__':
     prediction_dict = predict(cfg, dl, PegNet)
     print('Prediction complete')
     vectors = prediction_dict['features']
-    np.save("../../output/PegNet_fvect_norm.npy", vectors) #norm = with normalize transform
+    np.save("output/PegNet_fvect_norm.npy", vectors) #norm = with normalize transform
 
     img_path = prediction_dict['img_path']
     #convert to numpy array by concatenating
-    np.save("../../output/PegNet_imgvect_norm.npy", img_path) #norm = with normalize transform
+    np.save("output/PegNet_imgvect_norm.npy", img_path) #norm = with normalize transform
     print('Embeddings saved')
     #remove model from GPU
     PegNet.cpu()
@@ -59,35 +59,58 @@ if __name__ ==  '__main__':
     #Run SwavNet
     SwavNet = SwavNet()
     SwavNet = SwavNet.cuda()
-    print('Model loaded successfully...')
+    print('SwavNet loaded successfully...')
     print('Creating feature vectors...')
     prediction_dict = predict(cfg, dl, SwavNet)
     print('Prediction complete')
     vectors = prediction_dict['features']
-    np.save("../../output/Swav_fvect.npy", vectors)
+    np.save("output/Swav_fvect.npy", vectors)
 
     img_path = prediction_dict['img_path']
-    np.save("../../output/Swav_imgvect.npy", img_path)
+    np.save("output/Swav_imgvect.npy", img_path)
     print('Embeddings saved')
     SwavNet.cpu()
 
 
-    #Run Omi's EmbModel
-    print('Running EmbNet')
-    checkpoint = torch.load('../../data/kenya_resnet50_simclr_2022_05_05__16_34_13.pt')
+    # #Run Omi's EmbModel
+    # print('Running EmbNet')
+    # checkpoint = torch.load('../../data/kenya_resnet50_simclr_2022_05_05__16_34_13.pt')
+    # args = checkpoint['args']
+
+    # EmbNet = EmbModel(eval(args['backbone']), args).to(args['device'])
+    # msg = EmbNet.load_state_dict(checkpoint['state_dict'], strict=True)
+    # EmbNet = EmbNet.cuda()
+
+    # print('Model loaded successfully...')
+    # prediction_dict = predict(cfg, dl, EmbNet)
+    # print('Prediction complete')
+    # vectors = prediction_dict['features']
+    # np.save("../../output/Emb_fvect.npy", vectors)
+
+    # img_path = prediction_dict['img_path']
+    # np.save("../../output/Emb_imgvect.npy", img_path)
+    # print('Embeddings saved')
+
+#Run ResNet50 fully trained model
+    print('Running RN_50_full')
+    checkpoint = torch.load('../data/nepal_resnet50_supervised_2022_10_21__13_16_12.pt')
     args = checkpoint['args']
 
-    EmbNet = EmbModel(eval(args['backbone']), args).to(args['device'])
-    msg = EmbNet.load_state_dict(checkpoint['state_dict'], strict=True)
-    EmbNet = EmbNet.cuda()
+    RN_50 = NP_RN50_full(eval(args['backbone']), args).to(args['device'])
+    msg = RN_50.load_state_dict(checkpoint['state_dict'], strict=True)
 
+    # if torch.cuda.is_available():
+    #     device = torch.device('cuda')
+    # else:
+    #     device = torch.device('cpu')
+    #     RN_50 = RN_50.to(device)
+  
     print('Model loaded successfully...')
-    prediction_dict = predict(cfg, dl, EmbNet)
+    prediction_dict = predict(cfg, dl, RN_50)
     print('Prediction complete')
     vectors = prediction_dict['features']
-    np.save("../../output/Emb_fvect.npy", vectors)
+    np.save("../output/Emb_fvect.npy", vectors)
 
     img_path = prediction_dict['img_path']
-    np.save("../../output/Emb_imgvect.npy", img_path)
+    np.save("../output/NP_RN50_full_imgvect.npy", img_path)
     print('Embeddings saved')
-
