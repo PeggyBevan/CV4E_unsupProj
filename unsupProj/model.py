@@ -146,7 +146,6 @@ class EmbModel(nn.Module):
 
         return op
 
-
 class NP_RN50_full(nn.Module):
     
     def __init__(self, base_encoder, args):
@@ -214,4 +213,4 @@ class NP_RN50_full(nn.Module):
         '''
 
         return op
-print()
+print('complete')

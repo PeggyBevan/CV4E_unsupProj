@@ -15,6 +15,7 @@ if __name__ ==  '__main__':
     from model import SwavNet
     from model import EmbModel
     from dataset import CTDataset
+    from model import NP_RN50_full
     from functions import create_dataloader, predict
     import torch
     import numpy as np
@@ -33,7 +34,7 @@ if __name__ ==  '__main__':
         device = torch.device('cpu')
         PegNet = PegNet.to(device)
 
-    print('Model loaded successfully...')
+    print('PegNet Model loaded successfully...')
 
     # to call the fn
     img_list_path = 'data/train.txt'
@@ -43,33 +44,33 @@ if __name__ ==  '__main__':
     #cfg['device'] = 'cpu'
     dl = create_dataloader(cfg, img_list_path)
 
-    print('Creating feature vectors...')
-    prediction_dict = predict(cfg, dl, PegNet)
-    print('Prediction complete')
-    vectors = prediction_dict['features']
-    np.save("output/PegNet_fvect_norm.npy", vectors) #norm = with normalize transform
+    # print('Creating feature vectors...')
+    # prediction_dict = predict(cfg, dl, PegNet)
+    # print('Prediction complete')
+    # vectors = prediction_dict['features']
+    # np.save("output/PegNet_fvect_norm.npy", vectors) #norm = with normalize transform
 
-    img_path = prediction_dict['img_path']
-    #convert to numpy array by concatenating
-    np.save("output/PegNet_imgvect_norm.npy", img_path) #norm = with normalize transform
-    print('Embeddings saved')
-    #remove model from GPU
-    PegNet.cpu()
+    # img_path = prediction_dict['img_path']
+    # #convert to numpy array by concatenating
+    # np.save("output/PegNet_imgvect_norm.npy", img_path) #norm = with normalize transform
+    # print('Embeddings saved')
+    # #remove model from GPU
+    # PegNet.cpu()
 
-    #Run SwavNet
-    SwavNet = SwavNet()
-    SwavNet = SwavNet.cuda()
-    print('SwavNet loaded successfully...')
-    print('Creating feature vectors...')
-    prediction_dict = predict(cfg, dl, SwavNet)
-    print('Prediction complete')
-    vectors = prediction_dict['features']
-    np.save("output/Swav_fvect.npy", vectors)
+    # #Run SwavNet
+    # SwavNet = SwavNet()
+    # SwavNet = SwavNet.cuda()
+    # print('SwavNet loaded successfully...')
+    # print('Creating feature vectors...')
+    # prediction_dict = predict(cfg, dl, SwavNet)
+    # print('Prediction complete')
+    # vectors = prediction_dict['features']
+    # np.save("output/Swav_fvect.npy", vectors)
 
-    img_path = prediction_dict['img_path']
-    np.save("output/Swav_imgvect.npy", img_path)
-    print('Embeddings saved')
-    SwavNet.cpu()
+    # img_path = prediction_dict['img_path']
+    # np.save("output/Swav_imgvect.npy", img_path)
+    # print('Embeddings saved')
+    # SwavNet.cpu()
 
 
     # #Run Omi's EmbModel
@@ -93,7 +94,7 @@ if __name__ ==  '__main__':
 
 #Run ResNet50 fully trained model
     print('Running RN_50_full')
-    checkpoint = torch.load('../data/nepal_resnet50_supervised_2022_10_21__13_16_12.pt')
+    checkpoint = torch.load('data/nepal_resnet50_supervised_2022_10_21__13_16_12.pt', map_location=torch.device('cpu'))
     args = checkpoint['args']
 
     RN_50 = NP_RN50_full(eval(args['backbone']), args).to(args['device'])
@@ -109,8 +110,8 @@ if __name__ ==  '__main__':
     prediction_dict = predict(cfg, dl, RN_50)
     print('Prediction complete')
     vectors = prediction_dict['features']
-    np.save("../output/Emb_fvect.npy", vectors)
+    np.save("../output/NP_RN50_full_fvect.npy", vectors)
 
     img_path = prediction_dict['img_path']
     np.save("../output/NP_RN50_full_imgvect.npy", img_path)
-    print('Embeddings saved')
+    print('RN50 full Embeddings saved')
