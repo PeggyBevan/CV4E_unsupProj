@@ -8,7 +8,7 @@ import os
 #import argparse
 import yaml
 import glob
-import tqdm
+#import tqdm
 import numpy as np
 
 import torch
@@ -57,7 +57,7 @@ def predict(cfg, dataLoader, model):
     '''
     with torch.no_grad():   # no gradients needed for prediction
         output = {'features': [], 'img_path': []}
-        for idx, data in tqdm.tqdm(enumerate(dataLoader)): #if needed, adapt dataloader for prediction (no labels) 
+        for idx, data in enumerate(dataLoader): #if needed, adapt dataloader for prediction (no labels) 
             array = data[0]
             array = array.to(cfg['device'])
             features = model(array)

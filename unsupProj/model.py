@@ -151,7 +151,7 @@ class NP_RN50_full(nn.Module):
     def __init__(self, base_encoder, args):
         super().__init__()
     
-        self.enc = base_encoder(pretrained=args['pretrained'])
+        self.enc = base_encoder(pretrained=False) #pre-trained = FALSE because
         self.feature_dim = self.enc.fc.in_features
         self.projection_dim = args['projection_dim'] 
         self.proj_hidden = 512
