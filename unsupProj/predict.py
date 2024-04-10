@@ -9,7 +9,7 @@ if __name__ ==  '__main__':
 
     #load other scripts - must be in the same directory (unsupProj)
     import model, dataset, functions
-    import yaml, json
+    import yaml
     #import pickle
     from model import CustomPegNet50
     from model import SwavNet
@@ -20,6 +20,7 @@ if __name__ ==  '__main__':
     import torch
     import numpy as np
     from torchvision.models import resnet18, resnet50
+    import torch.nn as nn
 
 
 
@@ -94,11 +95,15 @@ if __name__ ==  '__main__':
 
 #Run ResNet50 fully trained model
     print('Running RN_50_full')
+    
+    base_encoder = eval(args['backbone'])
+    RN_50 = base_encoder(weights=None)
+    RN_50.fc = nn.Identity()
+
     checkpoint = torch.load('data/nepal_resnet50_supervised_2022_10_21__13_16_12.pt', map_location=torch.device('cpu'))
     args = checkpoint['args']
-
-    RN_50 = NP_RN50_full(eval(args['backbone']), args).to(args['device'])
-    msg = RN_50.load_state_dict(checkpoint['state_dict'], strict=True)
+     #RN_50 = NP_RN50_full(eval(args['backbone']), args).to(device)
+    msg = RN_50.load_state_dict(checkpoint['state_dict'], strict=False)
 
     # if torch.cuda.is_available():
     #     device = torch.device('cuda')
