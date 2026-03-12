@@ -8,7 +8,7 @@ python data_setup/ListTrainTest.py
 
 #to call a model
 python unsupProj/predict.py configs/cfgresnet50.yaml data/train.txt PegNet50
-#on my laptop this takes about 3 minutes to run
+#on my laptop each model takes about 3 minutes to run, except regnet128.
 
 python unsupProj/predict.py configs/cfg_resnet50.yaml data/train.txt efficientNet2 
 

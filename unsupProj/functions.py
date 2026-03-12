@@ -23,7 +23,7 @@ from sklearn.metrics import pairwise_distances, adjusted_rand_score, adjusted_mu
 
 # let's import our own classes and functions!
 from dataset import CTDataset
-from model import CustomPegNet50
+from model import PegNet50
 
 
 def create_dataloader(cfg, img_list_path):

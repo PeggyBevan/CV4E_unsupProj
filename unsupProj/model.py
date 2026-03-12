@@ -6,18 +6,19 @@
 
 import torch
 import torch.nn as nn
-from torchvision.models import resnet
+from torchvision.models import resnet, efficientnet, regnet, convnext, RegNet_Y_128GF_Weights
+#    from torchvision.models import 
 
 #Class name is whatever you want it to be. nn.Module inherits 
 #properties from pre-made module
-class CustomPegNet50(nn.Module):
+class PegNet50(nn.Module):
 
     def __init__(self):
         '''
             Constructor of the model. Here, we initialize the model's
             architecture (layers).
         '''
-        super(CustomPegNet50, self).__init__() #calls the 'super' class (nn.Module)
+        super(PegNet50, self).__init__() #calls the 'super' class (nn.Module)
 
         self.feature_extractor = resnet.resnet50(pretrained=True)       # "pretrained": use weights pre-trained on ImageNet
 
@@ -44,25 +45,66 @@ class CustomPegNet50(nn.Module):
 
         return features
 
-class SwavNet(nn.Module):
+
+class efficientNet2(nn.Module):
 
     def __init__(self):
         '''
             Constructor of the model. Here, we initialize the model's
             architecture (layers).
         '''
-        super(SwavNet, self).__init__()
+        super(efficientNet2, self).__init__() #calls the 'super' class (nn.Module)
 
-        self.feature_extractor = torch.hub.load('facebookresearch/swav:main', 'resnet50') # "pretrained": use weights pre-trained on ImageNet
+        self.feature_extractor = efficientnet.efficientnet_v2_l(pretrained=True)       # "pretrained": use weights pre-trained on ImageNet
 
         # remove the very last layer from the original, 1000-class output
         # and replace with an identity block 
         # removing softmax and linear model
         # ImageNet to a new one that outputs num_classes
-        last_layer = self.feature_extractor.fc  # tip: print(self.feature_extractor) to get info on how model is set up
-        in_features = last_layer.in_features    # number of input dimensions to last (classifier) layer
-        self.feature_extractor.fc = nn.Identity()  # discard last layer...
+        # Note: efficientNet does not have a fc layer, so we need to use the classifier
+        # Get number of input features to classifier
+        in_features = self.feature_extractor.classifier[1].in_features
+        # Replace classifier with identity to get feature vectors
+        self.feature_extractor.classifier = nn.Identity()
+        
 
+
+    def forward(self, x):
+        '''
+            Forward pass. Here, we define how to apply our model. It's basically
+            applying our modified ResNet-50 on the input tensor ("x") and then
+            apply the final classifier layer on the ResNet-18 output to get our
+            num_classes prediction.
+        '''
+        # x.size(): [B x 3 x W x H]
+        features = self.feature_extractor(x)    # features.size(): [B x 512 x W x H]
+        #I don't care about prediction - just want to output features
+        #prediction = self.classifier(features)  # prediction.size(): [B x num_classes]
+
+        return features
+
+
+class regnet128(nn.Module):
+
+    def __init__(self):
+        '''
+            Constructor of the model. Here, we initialize the model's
+            architecture (layers).
+        '''
+        super(regnet128, self).__init__() #calls the 'super' class (nn.Module)
+
+        weights = RegNet_Y_128GF_Weights.DEFAULT
+        self.feature_extractor = regnet.regnet_y_128gf(weights = weights)       # "pretrained": use weights pre-trained on ImageNet
+
+        # remove the very last layer from the original, 1000-class output
+        # and replace with an identity block 
+        # removing softmax and linear model
+        # ImageNet to a new one that outputs num_classes
+        # Note: efficientNet does not have a fc layer, so we need to use the classifier
+        # Get number of input features to classifier
+        
+        # Replace classifier with identity to get feature vectors
+        self.feature_extractor.classifier = nn.Identity() 
 
     def forward(self, x):
         '''
@@ -77,6 +119,43 @@ class SwavNet(nn.Module):
         #prediction = self.classifier(features)  # prediction.size(): [B x num_classes]
 
         return features
+        
+class convnextL(nn.Module):
+
+    def __init__(self):
+        '''
+            Constructor of the model. Here, we initialize the model's
+            architecture (layers).
+        '''
+        super(convnextL, self).__init__() #calls the 'super' class (nn.Module)
+
+        
+        self.feature_extractor = convnext.convnext_large(weights = 'DEFAULT')       # "pretrained": use weights pre-trained on ImageNet
+
+        # remove the very last layer from the original, 1000-class output
+        # and replace with an identity block 
+        # removing softmax and linear model
+        # ImageNet to a new one that outputs num_classes
+        # Note: efficientNet does not have a fc layer, so we need to use the classifier
+        # Get number of input features to classifier
+        
+        # Replace classifier with identity to get feature vectors
+        self.feature_extractor.fc = nn.Identity() 
+
+    def forward(self, x):
+        '''
+            Forward pass. Here, we define how to apply our model. It's basically
+            applying our modified ResNet-50 on the input tensor ("x") and then
+            apply the final classifier layer on the ResNet-18 output to get our
+            num_classes prediction.
+        '''
+        # x.size(): [B x 3 x W x H]
+        features = self.feature_extractor(x)    # features.size(): [B x 512 x W x H]
+        #I don't care about prediction - just want to output features
+        #prediction = self.classifier(features)  # prediction.size(): [B x num_classes]
+
+        return features
+
 
 class EmbModel(nn.Module):
     
@@ -213,4 +292,39 @@ class NP_RN50_full(nn.Module):
         '''
 
         return op
-print('complete')
+#print('complete')
+
+
+class SwavNet(nn.Module):
+
+    def __init__(self):
+        '''
+            Constructor of the model. Here, we initialize the model's
+            architecture (layers).
+        '''
+        super(SwavNet, self).__init__()
+
+        self.feature_extractor = torch.hub.load('facebookresearch/swav:main', 'resnet50') # "pretrained": use weights pre-trained on ImageNet
+
+        # remove the very last layer from the original, 1000-class output
+        # and replace with an identity block 
+        # removing softmax and linear model
+        # ImageNet to a new one that outputs num_classes
+        last_layer = self.feature_extractor.fc  # tip: print(self.feature_extractor) to get info on how model is set up
+        in_features = last_layer.in_features    # number of input dimensions to last (classifier) layer
+        self.feature_extractor.fc = nn.Identity()  # discard last layer...
+
+
+    def forward(self, x):
+        '''
+            Forward pass. Here, we define how to apply our model. It's basically
+            applying our modified ResNet-50 on the input tensor ("x") and then
+            apply the final classifier layer on the ResNet-18 output to get our
+            num_classes prediction.
+        '''
+        # x.size(): [B x 3 x W x H]
+        features = self.feature_extractor(x)    # features.size(): [B x 512 x W x H]
+        #I don't care about prediction - just want to ouput features
+        #prediction = self.classifier(features)  # prediction.size(): [B x num_classes]
+
+        return features

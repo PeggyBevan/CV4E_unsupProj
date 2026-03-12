@@ -3,7 +3,7 @@
     Here, model and datset at loaded and run across images 
     2022 Peggy Bevan
 '''
-print('Loading packages')
+# print('Loading packages')
 
 #load other scripts - must be in the same directory (unsupProj)
 import model, dataset, functions
