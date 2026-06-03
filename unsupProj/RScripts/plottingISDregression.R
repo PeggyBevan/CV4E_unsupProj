@@ -128,13 +128,27 @@ np = ggplot(reg, aes(x = as.factor(n_components), y = noise_ratio_global, colour
         strip.text = element_text(size = 12),
         text = element_text(size = 12))
 np
-r2p + np + plot_layout(guide = "collect")
+
+# total number of clusters
+nc = ggplot(reg, aes( x = as.factor(n_components), y = n_clusters_global, 
+                      colour = model_name, shape = min_cluster_size_pc)) +
+  geom_point()+
+  facet_wrap(~wild) +
+  theme_bw() +
+  labs(x = "UMAP Dimensions", y = "Number of clusters", colour = "CNN Architecture", shape = 'Min cluster size') +
+  scale_colour_viridis_d() +
+  theme(strip.background = element_blank(),
+        strip.text = element_text(size = 12),
+        text = element_text(size = 12))
+nc
+
+r2p + np + nc + plot_layout(guide = "collect")
 
 # make a column for r2 all and r2 wild
 reg_wide = pivot_wider(reg, 
                        id_cols = c("model_name", "n_components","min_cluster_size_pc"), 
                        names_from = wild,
-                       values_from = c('correlation_r', 'noise_ratio_global'))
+                       values_from = c('correlation_r', 'noise_ratio_global', "n_clusters_global"))
 # select the highest r value for each model
 bold_rows_all <- reg_wide %>%
   mutate(row_num = row_number()) %>%
@@ -167,6 +181,16 @@ f1
 save_as_image(f1, "results/figures/regsum_full.png", width = 8, height = 4, units = "in", res = 300)
 
 
+
+# trying to select best model, using rankings
+reg_wide1 <- reg_wide %>%
+  mutate(
+    rank_corr  = rank(`correlation_r_Wild images only`),
+    rank_clust = rank(`n_clusters_global_Wild images only`),
+    rank_noise = rank(-`noise_ratio_global_Wild images only`),  # negative so lower noise = higher rank
+    rank_total = rank_corr + rank_clust + rank_noise
+  ) %>%
+  arrange(desc(rank_total))
 
 
 # alternatively, lets choose the top 5 performing models and present these
@@ -470,7 +494,7 @@ for_sr + for_isd)
 # compute pairwise dissimilarity across sites (NP vs BZ vs OBZ) and measure 
 # community change across the pressure gradient. compare with actual species turnover
 
-clustID = read.csv('results/image_cluster_labels_convnextL_wild_umap32_leaf_1pct.cs.csv')
+clustID = read.csv('results/image_cluster_labels_ConvNeXtL_wild_umap8_leaf_1pct.csv')
 nrow(meta[!(meta$species %in% domes),])
 unique(clustID$cluster_label)
 unique(clustID$species)
@@ -658,8 +682,8 @@ abundance_by_zone <- function(data, taxon_col) {
     )
 }
 # at the moment this doesn't work because noise points have been removed that would be in the OG dataset..
-ab_species <- abundance_by_zone(clustID, "species")
-ab_cluster <- abundance_by_zone(clustID, "cluster_label")
+# ab_species <- abundance_by_zone(clustID, "species")
+# ab_cluster <- abundance_by_zone(clustID, "cluster_label")
 
 abundance_by_site <- function(data) {
   site_rates = data %>%
