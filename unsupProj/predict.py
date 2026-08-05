@@ -28,7 +28,7 @@ import os
 # python predict.py configs/cfg_resnet50.yaml data/train.txt PegNet50
 # the unknown variables are the config file, the image list file, and the model name.
 # there is also a setting for wild or not wild. If wild = true, this will be added to the file name.
-
+# there is also a setting for dataset which at the moment can be bct or mmct
 
 def create_model(model_name):
     '''
@@ -51,7 +51,7 @@ def create_model(model_name):
     else:
         raise ValueError(f'Unknown model name: {model_name}')
 
-def predict_model (cfg_path, img_list_path, model_name, wild: bool = False):
+def predict_model (cfg_path, img_list_path, model_name, dataset_name, wild: bool = False):
     '''
     Run the model on the images in the dataset and return the feature vectors.
     '''
@@ -83,16 +83,16 @@ def predict_model (cfg_path, img_list_path, model_name, wild: bool = False):
     if not os.path.exists('output'):
         os.makedirs('output')
     if wild: #add wild to file name if wild = true
-        np.save(f"output/{model_name}_wild_fvect_norm.npy", vectors) #norm = with normalize transform
+        np.save(f"output/{model_name}_{dataset_name}_wild_fvect_norm.npy", vectors) #norm = with normalize transform
     else:
-        np.save(f"output/{model_name}_fvect_norm.npy", vectors) #norm = with normalize transform
+        np.save(f"output/{model_name}_{dataset_name}_fvect_norm.npy", vectors) #norm = with normalize transform
 
     img_path = prediction_dict['img_path']
     #convert to numpy array by concatenating
     if wild: #add wild to file name if wild = true
-        np.save(f"output/{model_name}_wild_imgvect_norm.npy", img_path) #norm = with normalize transform
+        np.save(f"output/{model_name}_{dataset_name}_wild_imgvect_norm.npy", img_path) #norm = with normalize transform
     else:
-        np.save(f"output/{model_name}_imgvect_norm.npy", img_path) #norm = with normalize transform
+        np.save(f"output/{model_name}_{dataset_name}_imgvect_norm.npy", img_path) #norm = with normalize transform
     print('Embeddings saved')
     
 
