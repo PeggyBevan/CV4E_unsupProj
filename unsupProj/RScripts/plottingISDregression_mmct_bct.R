@@ -784,23 +784,26 @@ hist(topcbsmmct$shoat_30min_event_rate[topcbsmmct$conservancy == "NB"])
 pred_shoat <- ggpredict(m2_isdnb, 
                          terms = c("shoat_30min_event_rate_scaled [n = 100]", "conservancy"),
                          condition = c(camtrapdays = mean(topcbsmmct$log_camtrapdays)))
+
 pred_shoat$group = recode(pred_shoat$group,
                           "MT" = "Mara Triangle NP",
                           "MN" = "Mara North",
                           "OM" = "Olare-Motorogi",
                           "NB" = "Naboisho")
+unscaled_ticks <- c(0, 50, 100, 150, 200)
 shoat_isd = ggplot(pred_shoat[pred_shoat$group!='Mara Triangle NP',], 
                  aes(x = x, y = predicted, colour = group, fill = group)) +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2, colour = NA) +
   geom_line(size = 1) +
   scale_x_continuous(
-    breaks = (c(0, 0.25, 0.5, 0.75, 1) - shoat_mean) / shoat_sd,
-    labels = c("0", "0.25", "0.5", "0.75", "1")
-  ) +
+    breaks = (unscaled_ticks - shoat_mean) / shoat_sd,
+    labels = as.character(unscaled_ticks)
+    ) +
   labs(x = "Shoat Density", y = "VOTU Diversity", 
        colour = "Conservancy", fill = 'Conservancy') +
   theme_classic() +
-  theme(text = element_text(size = 12))
+  theme(text = element_text(size = 12)) +
+  ylim(0,20)
 
 pred_shoat_sr <- ggpredict(m1_srnb, 
                             terms = c("shoat_30min_event_rate_scaled [n = 100]", "conservancy"),
@@ -811,8 +814,8 @@ shoat_sr = ggplot(pred_shoat_sr[pred_shoat_sr$group!='MT',],
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2, colour = NA) +
   geom_line(size = 1) +
   scale_x_continuous(
-    breaks = (c(0, 0.25, 0.5, 0.75, 1) - shoat_mean) / shoat_sd,
-    labels = c("0", "0.25", "0.5", "0.75", "1")
+    breaks = (unscaled_ticks - shoat_mean) / shoat_sd,
+    labels = as.character(unscaled_ticks)
   ) +
   # scale_x_continuous(
   #   labels = function(x) round(x * forest_sd + forest_mean, 2)
@@ -822,7 +825,8 @@ shoat_sr = ggplot(pred_shoat_sr[pred_shoat_sr$group!='MT',],
   theme_classic() +
   theme(text = element_text(size = 12),
         legend.position = "none") +
-  ggtitle("b)")
+  ggtitle("b)") +
+  ylim(0,20)
 
 # shoat_sr + shoat_isd & plot_layout(guides = "collect")
 
