@@ -13,6 +13,7 @@ library(broom)
 library(mgcv)
 library(vegan)
 library(tidyverse)#map_df
+library(ggeffects)
 
 # bct data load
 cbsbct = read.csv("results/nepal/clustercountsbysite.csv")#contains wild and non wild
@@ -137,14 +138,14 @@ reg$dataset = toupper(reg$dataset)
 # make a plot of this table
 r2p = ggplot(reg, aes(x = as.factor(n_components), y = correlation_r, colour = model_name, shape = min_cluster_size_pc)) +
   geom_point()+
-  facet_wrap(dataset~wild) +
+  facet_grid(dataset~wild) +
   ylim(0, 1) +
   theme_bw() +
   scale_colour_viridis_d() +
   labs(x = "UMAP Dimensions", y = "Correlation (R2)", colour = "CNN Architecture", shape = 'Min cluster size') +
   theme(strip.background = element_blank(),
-        strip.text = element_text(size = 12),
-        text = element_text(size = 12))
+        strip.text = element_text(size = 14),
+        text = element_text(size = 14))
 r2p
 np = ggplot(reg, aes(x = as.factor(n_components), y = noise_ratio_global, colour = model_name, shape = min_cluster_size_pc)) +
   geom_point()+
@@ -157,6 +158,74 @@ np = ggplot(reg, aes(x = as.factor(n_components), y = noise_ratio_global, colour
         strip.text = element_text(size = 12),
         text = element_text(size = 12))
 np
+
+
+# make wild species plot and al species plot so noise and r2 can be on same plots
+reg_wild_long = reg %>%
+  filter(grepl("wild", wild, ignore.case = TRUE)) %>%
+  pivot_longer(
+    cols = c(correlation_r, noise_ratio_global),
+    names_to = "metric",
+    values_to = "value"
+  ) %>%
+  mutate(metric = factor(
+    recode(metric,
+           "correlation_r" = "Pearson's correlation (r)",
+           "noise_ratio_global" = "Noise Ratio"),
+    levels = c("Pearson's correlation (r)", "Noise Ratio")
+  ))
+wild_plot <- ggplot(reg_wild_long, aes(x = as.factor(n_components), 
+                                       y = value, 
+                                       colour = model_name, 
+                                       shape = min_cluster_size_pc)) +
+  geom_point(size = 2.5) +
+  facet_grid(dataset ~ metric) +
+  ylim(0, 1) +
+  theme_bw() +
+  scale_colour_viridis_d() +
+  labs(x = "UMAP Dimensions", 
+       y = "Metric Value", 
+       colour = "CNN Architecture", 
+       shape = "Min cluster size") +
+  theme(strip.background = element_blank(),
+        strip.text = element_text(size = 14, face = "bold"),
+        text = element_text(size = 14))
+
+wild_plot
+
+reg_all_long = reg %>%
+  filter(!grepl("wild", wild, ignore.case = TRUE)) %>%
+  pivot_longer(
+    cols = c(correlation_r, noise_ratio_global),
+    names_to = "metric",
+    values_to = "value"
+  ) %>%
+  mutate(metric = factor(
+    recode(metric,
+           "correlation_r" = "Pearson's correlation (r)",
+           "noise_ratio_global" = "Noise Ratio"),
+    levels = c("Pearson's correlation (r)", "Noise Ratio")
+  ))
+all_plot <- ggplot(reg_all_long, aes(x = as.factor(n_components), 
+                                       y = value, 
+                                       colour = model_name, 
+                                       shape = min_cluster_size_pc)) +
+  geom_point(size = 2.5) +
+  facet_grid(dataset ~ metric) +
+  ylim(0, 1) +
+  theme_bw() +
+  scale_colour_viridis_d() +
+  labs(x = "UMAP Dimensions", 
+       y = "Metric Value", 
+       colour = "CNN Architecture", 
+       shape = "Min cluster size") +
+  theme(strip.background = element_blank(),
+        strip.text = element_text(size = 14, face = "bold"),
+        text = element_text(size = 14))
+
+all_plot
+
+
 
 # total number of clusters
 nc = ggplot(reg, aes( x = as.factor(n_components), y = n_clusters_global, 
@@ -548,18 +617,18 @@ isd_coefs <- tidy(m5_isdqp, conf.int = TRUE, exponentiate = TRUE) %>%
 
 df1 = bind_rows(sr_coefs, isd_coefs) %>%
   mutate(term = recode(term,
-                       "ManagementNP" = "Low disturbance",
-                       "ManagementBZ" = "Medium disturbance",
-                       "ManagementOBZ" = "High disturbance",
+                       "ManagementNP" = "Low Disturbance",
+                       "ManagementBZ" = "Medium Disturbance",
+                       "ManagementOBZ" = "High Disturbance",
                        "propForest500_scaled" = "Forest Cover (500m)",
-                       "ManagementOBZ:propForest500_scaled" = "High disturbance:Forest Cover",
-                       "ManagementBZ:propForest500_scaled" = "Med disturbance:Forest Cover"))
-df1$term = factor(df1$term,levels = c("Low disturbance",
-                                      "Medium disturbance",
-                                      "High disturbance",
+                       "ManagementOBZ:propForest500_scaled" = "HD:Forest Cover",
+                       "ManagementBZ:propForest500_scaled" = "MD:Forest Cover"))
+df1$term = factor(df1$term,levels = c("Low Disturbance",
+                                      "Medium Disturbance",
+                                      "High Disturbance",
                                       "Forest Cover (500m)",
-                                      "Med disturbance:Forest Cover",
-                                      "High disturbance:Forest Cover"))
+                                      "MD:Forest Cover",
+                                      "HD:Forest Cover"))
 
 coefp = ggplot(df1, aes(x = estimate, y = term, colour = response,
                         xmin = conf.low, xmax = conf.high)) +
@@ -659,7 +728,7 @@ for_sr = ggplot(pred_forest_sr[pred_forest_sr$group!='NP',],
 for_sr + for_isd & plot_layout(guides = "collect")
 
 coefp
-for_sr + for_isd)
+for_sr + for_isd
 
 # MMCT Linear modelling
 
@@ -679,6 +748,14 @@ m1_srnb = glm.nb(distinct_species_count ~ conservancy +
                   data = topcbsmmct)
 check_overdispersion(m1_srnb)
 summary(m1_srnb)
+AIC(m1_srnb)
+m1_srnb2 = glm.nb(distinct_species_count ~ conservancy + 
+                   conservancy*shoat_30min_event_rate_scaled - 1 + 
+                   offset(log_camtrapdays), 
+                 data = topcbsmmct)
+check_overdispersion(m1_srnb2)
+summary(m1_srnb2)
+AIC(m1_srnb2)
 
 m2_isd = glm(distinct_label_count ~ conservancy + 
                humdist_short_scaled + Mean.savi_scaled + propopen500m_scaled +
@@ -698,10 +775,16 @@ m2_isdnb = glm.nb(distinct_label_count ~ conservancy +
 check_overdispersion(m2_isdnb)
 summary(m2_isdnb)
 
+m2_isdnb2 = glm.nb(distinct_label_count ~ conservancy + 
+                    conservancy*shoat_30min_event_rate_scaled - 1 + 
+                    offset(log_camtrapdays), 
+                  data = topcbsmmct)
+summary(m2_isdnb2)
+
 # compare model coefficients
-sr_coefs_mm <- tidy(m1_srnb, conf.int = TRUE, exponentiate = TRUE) %>% 
+sr_coefs_mm <- tidy(m1_srnb2, conf.int = TRUE, exponentiate = TRUE) %>% 
   mutate(response = "Species Richness")
-isd_coefs_mm <- tidy(m2_isdnb, conf.int = TRUE, exponentiate = TRUE) %>% 
+isd_coefs_mm <- tidy(m2_isdnb2, conf.int = TRUE, exponentiate = TRUE) %>% 
   mutate(response = "VOTU Diversity")
 
 df1mm = bind_rows(sr_coefs_mm, isd_coefs_mm) %>%
@@ -710,24 +793,29 @@ df1mm = bind_rows(sr_coefs_mm, isd_coefs_mm) %>%
                        "conservancyMN" = "Mara North",
                        "conservancyNB" = "Naboisho",
                        "conservancyOM" = "Olare-Motorogi",
-                       "humdist_short_scaled" = "Dist to infrastructure",
-                       "Mean.savi_scaled" = "SAVI",
-                       "propopen500m_scaled" = "Open habitat (500m)",
-                       "livestock_avg_500m_scaled" = "Livestock density (500m)",
+                       # "humdist_short_scaled" = "Dist to infrastructure",
+                       # "Mean.savi_scaled" = "SAVI",
+                       # "propopen500m_scaled" = "Open habitat (500m)",
+                       # "livestock_avg_500m_scaled" = "Livestock density (500m)",
                        "shoat_30min_event_rate_scaled" = "Shoat density",
-                       "cattle_30min_event_rate_scaled" = "Cattle density"))
+                       # "cattle_30min_event_rate_scaled" = "Cattle density"))
+                       "conservancyMN:shoat_30min_event_rate_scaled" = "Shoat Density:MN",
+                       "conservancyOM:shoat_30min_event_rate_scaled" = "Shoat Density:OM"))
+
 df1mm$term = factor(df1mm$term,levels = c("Mara Triangle NP",
                                       "Mara North",
                                       "Olare-Motorogi",
                                       "Naboisho",
-                                      "Dist to infrastructure",
-                                      "SAVI",
-                                      "Open habitat (500m)",
-                                      "Livestock density (500m)",
+                                      # "Dist to infrastructure",
+                                      # "SAVI",
+                                      # "Open habitat (500m)",
+                                      # "Livestock density (500m)",
                                       "Shoat density",
-                                      "Cattle density"))
-
-coefpmm = ggplot(df1mm, aes(x = estimate, y = term, colour = response,
+                                      # "Cattle density",
+                                      "Shoat Density:MN",
+                                      "Shoat Density:OM"))
+df1mm
+coefpmm = ggplot(df1mm[!grepl(":", df1mm$term),], aes(x = estimate, y = term, colour = response,
                         xmin = conf.low, xmax = conf.high)) +
   geom_pointrange(position = position_dodge(width = 0.4)) +
   geom_vline(xintercept = 1, linetype = "dashed", colour = "grey50") +
@@ -736,10 +824,11 @@ coefpmm = ggplot(df1mm, aes(x = estimate, y = term, colour = response,
   labs(x = "Rate Ratio", y = NULL, colour = NULL) +
   theme_classic() +
   theme(text = element_text(size = 16)) +
-  ggtitle("a)")
+  ggtitle("a)") +
+  xlim(0,3)
 coefpmm
 
-pred_cons <- ggpredict(m2_isdnb, terms = "conservancy", 
+pred_cons <- ggpredict(m2_isdnb2, terms = "conservancy", 
                        condition = c(camtrapdays = mean(topcbsbct$log_camtrapdays)))
 
 consisd = ggplot() +
@@ -754,7 +843,7 @@ consisd = ggplot() +
   ggtitle("b)") +
   ylim(0,27)
 consisd
-pred_cons_sr<- ggpredict(m1_srnb, terms = "conservancy", 
+pred_cons_sr<- ggpredict(m1_srnb2, terms = "conservancy", 
                          condition = c(camtrapdays = mean(topcbsbct$log_camtrapdays)))
 
 conssr = ggplot() +
@@ -825,21 +914,52 @@ shoat_sr = ggplot(pred_shoat_sr[pred_shoat_sr$group!='MT',],
   theme_classic() +
   theme(text = element_text(size = 12),
         legend.position = "none") +
-  ggtitle("b)") +
+  # ggtitle("b)") +
   ylim(0,20)
 
 # shoat_sr + shoat_isd & plot_layout(guides = "collect")
 
-coefp
+coefp + coefpmm + plot_layout(guides = "collect")
 shoat_sr + shoat_isd
 
 
-# 2. ISD for measuring change in community
+coefp = ggplot(df1[!grepl(":", df1$term),], aes(x = term, y = estimate, colour = response,
+                        ymin = conf.low, ymax = conf.high)) +
+  geom_pointrange(position = position_dodge(width = 0.5)) +
+  geom_hline(yintercept = 1, linetype = "dashed", colour = "grey50") +
+  scale_colour_manual(values = c("Species Richness" = "#2166ac", 
+                                 "VOTU Diversity" = "#d6604d")) +
+  labs(y = "Rate Ratio", x = "BCT model terms", colour = NULL) +
+  theme_bw() +
+  theme(text = element_text(size = 12),
+        axis.text.x = element_text(size = 10, hjust = 1,angle = 45)) +
+  ggtitle("a)") +
+  ylim(0, 1.3)
+coefp
+
+coefpmm = ggplot(df1mm[!grepl(":", df1mm$term),], aes(x = term, y = estimate, colour = response,
+                                                      ymin = conf.low, ymax = conf.high)) +
+  geom_pointrange(position = position_dodge(width = 0.5)) +
+  geom_hline(yintercept = 1, linetype = "dashed", colour = "grey50") +
+  scale_colour_manual(values = c("Species Richness" = "#2166ac", 
+                                 "VOTU Diversity" = "#d6604d")) +
+  labs(y = "Rate Ratio", x = "MMCT model terms", colour = NULL) +
+  theme_bw() +
+  theme(text = element_text(size = 12),
+        axis.text.x = element_text(angle=45, hjust = 1, size = 10)) +
+  # ggtitle("a)") +
+  ylim(0,1.3)
+coefpmm
+
+coefp + coefpmm + plot_layout(guides = "collect")
+
+# 2. ISD for measuring change in community - bct
 # compute pairwise dissimilarity across sites (NP vs BZ vs OBZ) and measure 
 # community change across the pressure gradient. compare with actual species turnover
+domes = c('buffalo', 'cow', 'dog', 'domestic_cat', 'domestic_chicken', 'domestic elephant', 'goat', 'sheep')
 
-clustID = read.csv('results/image_cluster_labels_ConvNeXtL_wild_umap8_leaf_1pct.csv')
-nrow(meta[!(meta$species %in% domes),])
+clustID = read.csv('results/nepal/image_cluster_labels_ConvNeXtL_wild_umap8_leaf_1pct.csv')
+nrow(metabct[!(metabct$species %in% domes),])
 unique(clustID$cluster_label)
 unique(clustID$species)
 # we can remove all images that were labelled as noise
@@ -849,8 +969,8 @@ noise = clustID %>%
 clustID = clustID %>%
   filter(cluster_label != -1)
 
-clustID = left_join(clustID, siteinfo, by = c("ct_site" = "CT_site"))
-clustID = left_join(clustID, camtrapdays, by = "ct_site")
+clustID = left_join(clustID, siteinfobct, by = c("ct_site" = "CT_site"))
+clustID = left_join(clustID, ctdaysbct, by = "ct_site")
 
 # change management to disturbance level low medium and high
 clustID = clustID %>%
@@ -860,14 +980,14 @@ clustID = clustID %>%
     Management == "OBZ" ~ "High"
   ))
 
-meta = meta %>%
+metabct = metabct %>%
   mutate(disturbance = case_when(
     conservancy_name == "NP" ~ "Low",
     conservancy_name == "BZ" ~ "Medium",
     conservancy_name == "OBZ" ~ "High"
   )) %>%
-  left_join(camtrapdays, by = c("ct_site" = "ct_site"))
-# Compositional dissimilarity across the gradient -------------------------
+  left_join(ctdaysbct, by = c("ct_site" = "ct_site"))
+# Compositional dissimilarity across the gradient - bct -------------------------
 
 # Build a site x cluster matrix (proportional abundance of each cluster at each site)
 cluster_matrix <- clustID %>%
@@ -945,7 +1065,7 @@ clust_nmds = {
 # OBZ45 has a lot more dog than usual.
 
 spec_nmds = {
-  species_matrix = meta %>%
+  species_matrix = metabct %>%
     filter(!(species %in% domes)) %>%
     group_by(disturbance, ct_site, camtrapdays, species) %>%
     summarise(n = n()) %>%
@@ -975,9 +1095,9 @@ spec_nmds = {
     theme(legend.position = "none")
   
 }
-spec_nmds + clust_nmds & plot_layout(guides = "collect")
+spec_nmds + clust_nmds & patchwork::plot_layout(guides = "collect")
 
-# TO DO: can't do this test if the dimensions are different.
+# TO DO: can't do this test if the dimensions (n clusters) are different.
 # compute dissimilarity matrix
 # Bray-Curtis dissimilarity (accounts for abundance, not just presence)
 dist_isd <- dist(decostand(clustmat, method = 'hellinger'))
@@ -1007,8 +1127,132 @@ adonis2(dist_sp ~ disturbance, data = species_matrix, permutations = 999)
 # 0.001
 
 
-# Biodiversity Intactness Index -------------------------------------------
+# Measuring community change - mmct ---------------------------------------
 
+domes = c('shoat', 'domestic_dog', 'cattle')
+clustIDmm = read.csv('results/kenya/image_cluster_labels_convnextL_mmct_wild_umap8_leaf_1pct.csv')
+nrow(metammct[!(metammct$species %in% domes),])
+unique(clustIDmm$cluster_label)
+unique(clustIDmm$species)
+# we can remove all images that were labelled as noise
+noisemm = clustIDmm %>%
+  filter(cluster_label == -1)
+
+clustIDmm = clustIDmm %>%
+  filter(cluster_label != -1)
+
+clustIDmm = left_join(clustIDmm, siteinfommct, by = c("ct_site" = "CT_site"))
+clustIDmm = left_join(clustIDmm, ctdaysmmct, by = "ct_site") %>%
+  filter(conservancy != "" & !is.na(conservancy)) %>%
+  mutate(conserancy = factor(conservancy, levels = c("MT", "MN", "OM", "NB")))
+
+metammct_wild <- metammct[,-(1:2)] %>% 
+  filter(!species %in% domes) %>%
+  left_join(siteinfommct, by = c("location" = "CT_site", "conservancy" = "conservancy")) %>%
+  left_join(ctdaysmmct, by = c("location" = "ct_site")) %>%
+  filter(conservancy != "" & !is.na(conservancy)) %>%
+  mutate(conservancy = factor(conservancy, levels = c("MT", "MN", "OM", "NB")))
+
+# Compositional dissimilarity across the gradient -------------------------
+
+# Build a site x cluster matrix (proportional abundance of each cluster at each site)
+cluster_matrixmm <- clustIDmm %>%
+  group_by(conservancy, ct_site, camtrapdays, cluster_label) %>%
+  summarise(n = n()) %>%
+  mutate(rate = n / camtrapdays) %>% #standardise by effort
+  pivot_wider(id_cols = c(conservancy, ct_site),
+              names_from = cluster_label, 
+              values_from = rate,
+              values_fill = 0)
+
+# Remove empty rows
+clustmatmm =  as.matrix(cluster_matrixmm[, -c(1:2)])
+nonzeromm <- rowSums(clustmatmm, na.rm = TRUE) > 0
+cluster_matrixmm = cluster_matrixmm[nonzeromm, ]
+clustmatmm <- clustmatmm[nonzeromm, ]
+
+clust_nmdsmm = {
+  # transform to hellinger
+  clustmat_hell = decostand(clustmatmm, method = 'hellinger')
+  nmds <- metaMDS(clustmat_hell, distance = "euclidian", k = 2, trymax = 100)
+  # nmds_bray = metaMDS(clustmat, distance = "bray", k = 2, trymax = 100)
+  scores_df <- as.data.frame(scores(nmds, display = 'sites'))
+  scores_df$conservancy <- factor(cluster_matrixmm$conservancy, 
+                                  levels = c("MT", "MN", "OM", "NB"))
+  clust_hell = ggplot(data = scores_df, aes(x = NMDS1, y = NMDS2)) + 
+    geom_point(aes(color = conservancy), size = 3, alpha = 0.5) +
+    stat_ellipse(level = 0.95, aes(color = conservancy), size = 1) +
+    labs(title = "b) VOTU composition", colour = "Disturbance level") +
+    annotate("text", x = 0.4, y = 1, label = paste0("Stress = ", round(nmds$stress, 3)), size = 4) +
+    theme_bw()
+}
+
+spec_nmdsmm = {
+  species_matrix = metammct_wild %>%
+    filter(!(species %in% domes)) %>%
+    group_by(conservancy, location, camtrapdays, species) %>%
+    summarise(n = n()) %>%
+    mutate(rate = n / camtrapdays) %>% #standardise by effort
+    pivot_wider(id_cols = c(conservancy, location),
+                names_from = species, 
+                values_from = rate,
+                values_fill = 0)
+  
+  specmat = as.matrix(species_matrix[, -c(1:2)])
+  nonzero <- rowSums(specmat, na.rm = TRUE) > 0
+  species_matrix = species_matrix[nonzero, ]
+  specmat <- specmat[nonzero, ]
+  
+  # transform to hellinger
+  specmat_hell = decostand(specmat, method = 'hellinger')
+  nmds <- metaMDS(specmat_hell, distance = "euclidian", k = 2, trymax = 100)
+  scores_df <- as.data.frame(scores(nmds, display = 'sites'))
+  scores_df$conservancy <- factor(species_matrix$conservancy, levels = c("MT", "MN", "OM", "NB"))
+  
+  ggplot(data = scores_df, aes(x = NMDS1, y = NMDS2)) + 
+    geom_point(aes(color = conservancy), size = 3, alpha = 0.5) +
+    stat_ellipse(level = 0.95, aes(color = conservancy), size = 1) +
+    labs(title = "a) Species composition", colour = "Conservancy") +
+    annotate("text", x = 0.4, y = 1, label = paste0("Stress = ", round(nmds$stress, 3)), size = 4) +
+    theme_bw() +
+    theme(legend.position = "none")
+  
+}
+spec_nmdsmm + clust_nmdsmm & patchwork::plot_layout(guides = "collect")
+
+# TO DO: can't do this test if the dimensions (n clusters) are different.
+# compute dissimilarity matrix
+# Bray-Curtis dissimilarity (accounts for abundance, not just presence)
+dist_isd <- dist(decostand(clustmat, method = 'hellinger'))
+# Also compute true species-based dissimilarity for comparison
+dist_sp <- dist(decostand(specmat, method = 'hellinger'))
+
+mantel(dist_isd, dist_sp, method = "pearson", permutations = 999)
+# A mantel test is significant (P = 0.001) with a correlation of 0.62, 
+# indicating a strong relationship between the VOTU-based dissimilarity 
+# and the species-based dissimilarity across sites. 
+# This suggests that the VOTUs are capturing meaningful ecological 
+# differences between sites that are also reflected in the species composition.
+
+# betadisper
+bd <- betadisper(dist_isd, cluster_matrix$disturbance)
+anova(bd)
+# p = 0.07
+bd_sp = betadisper(dist_sp, species_matrix$disturbance)
+anova(bd_sp)
+# p = 0,00014
+
+# permanova
+adonis2(dist_isd ~ disturbance, data = cluster_matrix, permutations = 999)
+# p = 0.001,
+adonis2(dist_sp ~ disturbance, data = species_matrix, permutations = 999)
+# the permanova
+# 0.001
+
+
+
+
+# Biodiversity Intactness Index -------------------------------------------
 
 # Abundance component
 abundance_by_zone <- function(data, taxon_col) {
@@ -1046,7 +1290,7 @@ abundance_by_site <- function(data) {
 }
 
 ab_cluster = abundance_by_site(clustID)
-ab_species = abundance_by_site(meta[!(meta$species %in% domes),])
+ab_species = abundance_by_site(metabct[!(metabct$species %in% domes),])
 
 # ── 2. COMPOSITIONAL SIMILARITY COMPONENT ────────────────────────────────────
 # Build site x taxon matrix, then calculate balanced Bray-Curtis similarity
@@ -1086,7 +1330,7 @@ comp_similarity <- function(data, taxon_col) {
   })
 }
 
-cs_species <- comp_similarity(meta[!(meta$species %in% domes),], "species")
+cs_species <- comp_similarity(metabct[!(metabct$species %in% domes),], "species")
 cs_cluster <- comp_similarity(clustID, "cluster_label")
 
 # ── 3. COMBINE INTO BII ───────────────────────────────────────────────────────
@@ -1129,6 +1373,8 @@ ggplot(BII_all, aes(x = disturbance, y = BII, colour = metric)) +
   theme(text = element_text(size = 12)) +
   ggtitle("c)") +
   geom_hline(yintercept = 1, linetype = "dashed", colour = "grey50")
+
+
 
 # 3. what are the clusters made up of?
 # have a look at cluster 'purity' - are they actually linked to species, functional groups, time zones 
