@@ -14,6 +14,10 @@ library(mgcv)
 library(vegan)
 library(tidyverse)#map_df
 library(ggeffects)
+library(betapart)
+library(Hmisc)
+
+
 
 # bct data load
 cbsbct = read.csv("results/nepal/clustercountsbysite.csv")#contains wild and non wild
@@ -281,7 +285,7 @@ f1 = merge_v(f1, j = c(1,2)) %>%
 f1
 
 # save f1 as png
-save_as_image(f1, "results/figures/regsum_full_mmct_bct.png", width = 8, height = 4, units = "in", res = 300)
+# save_as_image(f1, "results/figures/regsum_full_mmct_bct.png", width = 8, height = 4, units = "in", res = 300)
 
 
 
@@ -323,9 +327,9 @@ f2_bct = reg_arr[,1:8] %>% filter(dataset=='BCT') %>% slice(1:5) %>%
   set_table_properties(layout = "autofit", width = .8)
 f2_bct
 
-save_as_image(f2_mmct, "results/figures/regsum_mmct_top5.png", width = 8,
+# save_as_image(f2_mmct, "results/figures/regsum_mmct_top5.png", width = 8,
               height = 4, units = "in", res = 300)
-save_as_image(f2_bct, "results/figures/regsum_bct_top5.png", width = 8,
+# save_as_image(f2_bct, "results/figures/regsum_bct_top5.png", width = 8,
               height = 4, units = "in", res = 300)
 
 # create same tables but ordered by correlations with wild species only
@@ -354,12 +358,11 @@ f3_bct = reg_arr[,1:8] %>% filter(dataset=='BCT') %>% slice(1:5) %>%
   set_table_properties(layout = "autofit", width = .8)
 f3_bct
 
-save_as_image(f3_mmct, "results/figures/regsum_mmct_top5wild.png", width = 8, 
-              height = 4, units = "in", res = 300)
-save_as_image(f3_bct, "results/figures/regsum_bct_top5wild.png", width = 8,
-              height = 4, units = "in", res = 300)
+# # save_as_image(f3_mmct, "results/figures/regsum_mmct_top5wild.png", width = 8, 
+#               # height = 4, units = "in", res = 300)
+# # save_as_image(f3_bct, "results/figures/regsum_bct_top5wild.png", width = 8,
+#               height = 4, units = "in", res = 300)
 
-n_distinct(meta$species)
 
 `# ANALYSIS PLAN
 
@@ -641,7 +644,6 @@ coefp = ggplot(df1, aes(x = estimate, y = term, colour = response,
   theme(text = element_text(size = 16)) +
   ggtitle("a)")
 coefp
-library(ggeffects)
 
 pred_mgmt <- ggpredict(m5_isdqp, terms = "Management", 
                        condition = c(camtrapdays = mean(topcbsbct$log_camtrapdays)))
@@ -1295,7 +1297,6 @@ ab_species = abundance_by_site(metabct[!(metabct$species %in% domes),])
 # ── 2. COMPOSITIONAL SIMILARITY COMPONENT ────────────────────────────────────
 # Build site x taxon matrix, then calculate balanced Bray-Curtis similarity
 # of each BZ/OBZ site against the average NP community
-library(betapart)
 comp_similarity <- function(data, taxon_col) {
   
   # site x taxon count matrix
@@ -1384,12 +1385,36 @@ ggplot(BII_all, aes(x = disturbance, y = BII, colour = metric)) +
 # stacked bar plot - for every cluster label, what proportion of images are made up of each species?
 
 
-clusta = ggplot(clustID, aes(x = as.factor(cluster_label), fill = species)) +
+clustID2 <- clustID %>%
+  mutate(species = ifelse(species %in% small_potatoes, "other", species))
+clustID2$species = factor(clustID2$species, levels = species_order)
+
+okabe_ito_species <- c(
+  "chital"           = "#44AA99",# Warm Orange
+  "one_horned_rhino" = "#56B4E9",  # Sky Blue
+  "wild_boar"        = "#009E73",  # Forest / Bluish Green
+  "grey_langur"      = "#CC79A7",  # Reddish Purple
+  "elephant"         = "#0072B2",  # Deep Blue
+  "barking_deer"     = "#E69F00",  # Vermilion / Rust
+  "sambar"           = "#DDCC77",  # Sand / Amber
+  "macaque"          = "#332288",  # Dark Violet
+  "nilgai"           = "#88CCEE",  # Light Cyan
+  "jungle_fowl"      = "#117A65",  # Deep Teal
+  "peacock"          = "#D55E00",  # Turquoise
+  "bird"             = "#882255",  # Wine / Rose
+  "other"            = "#D3D3D3"   # Neutral Light Grey
+)
+
+clusta = ggplot(clustID2, aes(x = as.factor(cluster_label), fill = species)) +
   geom_bar(position = "fill") +
+  scale_fill_manual(values = okabe_ito_species,
+                    labels = function(x) str_to_sentence(gsub("_", " ", x))) +
+  # scale_fill_viridis_d(option = "mako", direction = -1, 
+  #                    labels = function(x) str_to_sentence(gsub("_", " ", x))) +
   labs(x = "VOTU Label", y = "Proportion of Images", fill = "Species") +
   theme_classic() +
-  theme(text = element_text(size = 12)) +
-  ggtitle("a)")
+  theme(text = element_text(size = 12))
+clusta
 # Label 0 = 60% bird + peacock +jungle fowl total 80%
 #   Label 1 = elephant + rhino
 # Label 2 = 100% rhino
@@ -1413,9 +1438,92 @@ clustb = ggplot(clustID, aes(x = as.factor(cluster_label), fill = as.factor(hour
   theme_classic() +
   theme(text = element_text(size = 12)) +
   ggtitle("b)")
-
+clustb
 clusta+clustb & plot_layout(nrow = 2)
 
+# heat map format
+
+votu_purity <- clustID %>%
+  filter(cluster_label != -1) %>%
+  group_by(cluster_label, species) %>%
+  summarise(n = n(), .groups = "drop_last") %>%
+  mutate(prop = n / sum(n))  %>%
+# Fill in all missing (cluster_label, species) pairs with 0
+  ungroup() %>%
+  complete(cluster_label, species, fill = list(n = 0, prop = 0))
+
+species_order <- votu_purity %>%
+  group_by(species) %>%
+  summarise(
+    primary_votu = cluster_label[which.max(prop)],
+    peak_prop = max(prop)
+  ) %>%
+  # Sort by primary VOTU ID, then by highest proportion within that VOTU
+  arrange(primary_votu, desc(peak_prop)) %>%
+  pull(species)
+
+small_potatoes = votu_purity %>%
+  group_by(species) %>%
+  summarise(total_prop = sum(prop)) %>%
+  filter(total_prop < 0.079609216) %>%
+  pull(species)
+
+votu_purity <- votu_purity %>%
+  mutate(species = ifelse(species %in% small_potatoes, "other", species))
+# replace small potatoes with "other" in species_order
+species_order = species_order[!species_order %in% small_potatoes]
+species_order = c(species_order, "other")
+# 2. Apply the ordered species factor levels
+votu_purity <- votu_purity %>%
+  mutate(species = factor(species, levels = species_order))
+
+
+# rename small_potatoes as other 
+votu_purity <- votu_purity %>%
+  mutate(species = ifelse(species %in% small_potatoes, "other", species))                                           
+
+p_purity <- ggplot(votu_purity, aes(x = factor(cluster_label), y = species, 
+                                    fill = prop)) +
+  geom_tile(color = "white", linewidth = 0.5) +
+  geom_text(aes(label = ifelse(prop >= 0.01, 
+                               paste0(round(prop * 100), "%"), ""),
+                color = ifelse(prop > 0.5, "white", "#2C3E50")
+                ),
+            size = 3,
+            fontface = "bold") +
+  scale_color_identity() +
+  scale_fill_viridis_c(option = "mako", direction = -1,
+                       labels = scales::percent) +
+  labs(title = "a) Species Composition per VOTU Label", 
+       x = "Ground-truth Species", y = "VOTU Label", 
+       fill = "Proportion") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, face = "italic"), 
+        panel.grid = element_blank())
+p_purity
+
+
+# 2. Diurnal Activity Profile Matrix (24h)
+votu_activity <- clustID %>%
+  mutate(hour = hour(as.POSIXct(datetime))) %>%
+  group_by(cluster_label, hour) %>%
+  summarise(n = n(), .groups = "drop_last") %>%
+  mutate(prop = n / sum(n)) %>%
+  ungroup() %>%
+  complete(cluster_label, hour, fill = list(n = 0, prop = 0))
+
+p_activity <- ggplot(votu_activity, aes(x = hour, y = factor(cluster_label), fill = prop)) +
+  geom_tile(color = "white", linewidth = 0.2) +
+  geom_vline(xintercept = c(6, 18), linetype = "dashed", color = "gold") +
+  scale_x_continuous(breaks = c(0, 6, 12, 18, 23), labels = c("00h", "06h", "12h", "18h", "23h")) +
+  scale_fill_viridis_c(option = "mako", direction = -1) +
+  labs(x = "Hour of Day", y = "VOTU Label", fill = "Image frequency") +
+  theme_minimal() +
+  theme(panel.grid = element_blank(),
+        legend.position = "bottom")
+p_activity
+
+clusta + p_activity & plot_layout(nrow = 2, heights = c(1, 1))
 # make this into a table format
 
 clust_freq = clustID %>%
@@ -1424,4 +1532,108 @@ clust_freq = clustID %>%
   group_by(cluster_label) %>%
   mutate(prop = n / sum(n)) %>%
   arrange(cluster_label, desc(prop))
+
+
+# test for mmmct
+votu_puritymm <- clustIDmm %>%
+  filter(cluster_label != -1) %>%
+  group_by(cluster_label, species) %>%
+  summarise(n = n(), .groups = "drop_last") %>%
+  mutate(prop = n / sum(n))  %>%
+  # Fill in all missing (cluster_label, species) pairs with 0
+  ungroup() %>%
+  complete(cluster_label, species, fill = list(n = 0, prop = 0))
+
+species_ordermm <- votu_puritymm %>%
+  group_by(species) %>%
+  summarise(
+    primary_votu = cluster_label[which.max(prop)],
+    peak_prop = max(prop)
+  ) %>%
+  # Sort by primary VOTU ID, then by highest proportion within that VOTU
+  arrange(primary_votu, desc(peak_prop)) %>%
+  pull(species)
+
+small_potatoesmm = votu_puritymm %>%
+  group_by(species) %>%
+  summarise(total_prop = sum(prop)) %>%
+  filter(total_prop < 0.079609216) %>%
+  pull(species)
+
+votu_puritymm <- votu_puritymm %>%
+  mutate(species = ifelse(species %in% small_potatoesmm, "other", species))
+# replace small potatoes with "other" in species_order
+species_ordermm = species_ordermm[!species_ordermm %in% small_potatoesmm]
+species_ordermm = c(species_ordermm, "other")
+
+okabe_ito_kenya <- c(
+  # Primary Ungulates & Large Herbivores (Core Okabe-Ito)
+  "wildebeest"       = "#E69F00",  # Warm Orange
+  "zebra"            = "#56B4E9",  # Sky Blue
+  "impala"           = "#009E73",  # Forest / Bluish Green
+  "buffalo"          = "#0072B2",  # Deep Blue
+  "gazelle_thomsons" = "#D55E00",  # Vermilion / Rust
+  "gazelle_grants"   = "#CC79A7",  # Reddish Purple
+  "topi"             = "#E6AB02",  # Gold / Mustard
+  "eland"            = "#88CCEE",  # Light Cyan
+  "hartebeest_cokes" = "#882255",  # Wine / Maroon
+  "giraffe"          = "#DDCC77",  # Sand / Amber
+  "hippopotamus"     = "#7570B3",  # Muted Purple
+  
+  # Medium / Small Mammals & Carnivores
+  "warthog"          = "#332288",  # Dark Indigo
+  "hyena_spotted"    = "#661100",  # Dark Brown / Mahogany
+  "dikdik"           = "#44AA99",  # Turquoise
+  "oribi"            = "#117A65",  # Deep Teal
+  "hare"             = "#B2DF8A",  # Pale Sage Green
+  
+  # Primates
+  "baboon"           = "#A6761D",  # Bronze / Olive
+  "vervet_monkey"    = "#AA4499",  # Rose / Magenta
+  
+  # Birds
+  "guineafowl"       = "#1B9E77",  # Teal Green
+  "starling"         = "#E7298A",  # Bright Pink
+  "lapwing"          = "#66A61E",  # Leaf Green
+  
+  # Rare / Uncategorised
+  "other"            = "#D3D3D3"   # Neutral Light Grey
+)
+
+# to do - group some of the species by birds/mammals for easier categorisation
+
+clustamm = ggplot(clustIDmm, aes(x = as.factor(cluster_label), fill = species)) +
+  geom_bar(position = "fill") +
+  scale_fill_manual(values = okabe_ito_kenya,
+                    labels = function(x) str_to_sentence(gsub("_", " ", x))) +
+  # # scale_fill_viridis_d(option = "mako", direction = -1, 
+  #                    labels = function(x) str_to_sentence(gsub("_", " ", x))) +
+  labs(x = "VOTU Label", y = "Proportion of Images", fill = "Species") +
+  theme_classic() +
+  theme(text = element_text(size = 12))
+clustamm
+
+
+
+# 2. Diurnal Activity Profile Matrix (24h)
+votu_activitymm <- clustIDmm %>%
+  mutate(hour = hour(as.POSIXct(datetime))) %>%
+  group_by(cluster_label, hour) %>%
+  summarise(n = n(), .groups = "drop_last") %>%
+  mutate(prop = n / sum(n)) %>%
+  ungroup() %>%
+  complete(cluster_label, hour, fill = list(n = 0, prop = 0))
+
+p_activitymm <- ggplot(votu_activitymm, aes(x = hour, y = factor(cluster_label), fill = prop)) +
+  geom_tile(color = "white", linewidth = 0.2) +
+  geom_vline(xintercept = c(6, 18), linetype = "dashed", color = "gold") +
+  scale_x_continuous(breaks = c(0, 6, 12, 18, 23), labels = c("00h", "06h", "12h", "18h", "23h")) +
+  scale_fill_viridis_c(option = "mako", direction = -1) +
+  labs(x = "Hour of Day", y = "VOTU Label", fill = "Image frequency") +
+  theme_minimal() +
+  theme(panel.grid = element_blank(),
+        legend.position = "bottom")
+p_activitymm
+
+
 
